@@ -6,9 +6,9 @@ A mobile-first, bilingual pantry-to-recipe PWA, developed one small, reviewable 
 
 ## Current status / 当前状态
 
-Milestone 1 is implemented: a warm, minimal mobile shell with Chinese/English switching, persistent language preference and home/pantry/shopping preview views. Ingredient tracking, recipe matching, shopping edits and nutrition remain planned. The earlier prototype remains separate; its implementation and Git history are not copied here.
+Milestone 1 is implemented: a near-white, minimal menu-first mobile shell with Chinese/English switching, persistent language preference and menu/recipe-library/pantry preview views. Ingredient tracking, recipe matching, shopping edits and nutrition remain planned. The earlier prototype remains separate; its implementation and Git history are not copied here.
 
-已完成第 1 步：奶油白＋暖橙的手机首页框架、中英切换与语言保存。食材记录、菜谱推荐、购物编辑和营养分析尚未实现。此前的原型代码保留作参考；此仓库从小步骤重新实现。
+已完成第 1 步：近白色的菜单式手机首页框架、中英切换与语言保存。食材记录、菜谱推荐、购物编辑和营养分析尚未实现。此前的原型代码保留作参考；此仓库从小步骤重新实现。
 
 ## Run / 启动
 
@@ -32,7 +32,7 @@ Open http://localhost:8011. Run `npm run check` for JavaScript syntax validation
 
 ## Development approach / 开发方式
 
-See [the roadmap](docs/ROADMAP.md). Each implementation commit should represent a real, checked change. Commit at natural checkpoints during active development and at the end of each session; timestamps reflect actual work. No scheduled empty commits or artificial backdating.
+See [the roadmap](docs/ROADMAP.md) and the updated [reference-led design direction](docs/DESIGN.md). Each implementation commit should represent a real, checked change. Commit at natural checkpoints during active development and at the end of each session; timestamps reflect actual work. No scheduled empty commits or artificial backdating.
 
 每次先完成一个可检查的小功能，再运行适用的检查并提交。开发期间隔一段时间到达自然节点时 commit；结束当天工作前 push。不会为了凑时间或数量制造空提交，也不修改提交时间。没有运行中的自动开发或定时提交任务。
 

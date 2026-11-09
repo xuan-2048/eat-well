@@ -6,14 +6,17 @@ Started: 2026-11-08 (America/New_York). Milestones describe scope, not a promise
 | --- | --- | --- | --- |
 | 0 | Project definition, reference research, prototype catalog | Docs distinguish implemented features from plans | Done |
 | 1 | Minimal mobile app shell and Chinese/English switch | Both languages render at phone width; selection persists after reload | Done |
-| 2 | Ingredient model and quick pantry entry | Add/edit/remove, alias handling, unknown input feedback and reload persistence | Planned |
-| 3 | First three structured recipes | Bilingual titles, ingredients, quantities, steps and cuisine; data validation | Planned |
-| 4 | Matching and cuisine filters | Available/missing ingredients explained; staples treated explicitly; deterministic tests | Planned |
-| 5 | Expand the catalog and improve date-aware sorting | Validate recipe fields; date changes and incomplete data covered | Planned |
-| 6 | Shopping list | Missing ingredients added, duplicates merged, purchased items managed | Planned |
-| 7 | PWA shell and deployment | Manifest/icons, offline behavior, HTTPS preview, actual phone installation checks | Planned |
-| 8 | Nutrition estimates per recipe and serving | Traceable ingredient amounts, sources, serving calculations and explicit unknown data | Planned |
-| 9 | Meal intake and daily nutrition summary | Record consumed portions independently of planned recipes; aggregate without treating missing nutrients as zero | Planned |
+| 2 | Personal recipe library: add/edit/delete and want-to-cook/cooked status | Persist bilingual-compatible dish records, cuisine, ingredient quantities, units and servings; handle unknown inputs | Planned |
+| 3 | Today's/tomorrow's meal planning | Assign a saved dish to a meal, replace/remove it, and preserve planned date and servings | Planned |
+| 4 | Ingredient model and quick pantry entry | Add/edit/remove, alias handling, optional dates and reload persistence | Planned |
+| 5 | First three structured sample recipes and pantry matching | Valid bilingual recipe data; explain available/missing ingredients; deterministic ranking and cuisine filtering | Planned |
+| 6 | Expand catalog and date-aware sorting | Validate recipe fields, local date boundaries and incomplete inventory | Planned |
+| 7 | Shopping list | Missing ingredients added, duplicates merged, purchased items managed | Planned |
+| 8 | PWA shell and deployment | Manifest/icons, offline behavior, HTTPS preview, actual phone installation checks | Planned |
+| 9 | Nutrition estimates per recipe and serving | Traceable amounts, sources, serving calculations and explicit unknown data | Planned |
+| 10 | Meal intake and daily nutrition summary | Separate actual consumption from plans; do not treat unknown nutrients as zero | Planned |
+
+Priorities updated after reviewing the owner's Civa reference on 2026-11-08: recipe library and meal planning precede pantry matching. Today's UI remains a shell; the updated plan does not mean those features are implemented.
 
 ## Checkpoint policy / 提交节奏
 
@@ -27,4 +30,4 @@ Started: 2026-11-08 (America/New_York). Milestones describe scope, not a promise
 
 Local-first storage before account sync. No image recognition, autonomous recipe generation, nutrition diagnosis or automatic food-safety decisions in the initial scope. Cuisine tags describe the recipe's intended style and may use “inspired” where appropriate.
 
-Step 1 uses dependency-free HTML, CSS and JavaScript to keep the first language/layout milestone small. Future framework and backend changes should be justified by a feature. Visual direction: [cream + warm orange](DESIGN.md). Preserve the quantity and provenance requirements in the [nutrition plan](NUTRITION.md) when implementing recipe data.
+Step 1 uses dependency-free HTML, CSS and JavaScript to keep the first language/layout milestone small. Future framework and backend changes should be justified by a feature. Visual direction: [near-white menu layout with minimal copy](DESIGN.md). Preserve the quantity and provenance requirements in the [nutrition plan](NUTRITION.md) when implementing recipe data.

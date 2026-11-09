@@ -1,32 +1,28 @@
 # Design direction · 设计方向
 
-Selected by the owner on 2026-11-08: **cream + warm orange**, relaxed and minimal, like an everyday recipe notebook.
+Updated on 2026-11-08 after owner feedback: **near-white, minimal copy, menu-first layout**. This replaces the initial cream-and-orange promotional homepage. Warm orange remains a small selection accent, not a page background.
 
-## Reference material
+## Reference
 
-- [Mela](https://www.mela.recipes/): use its recipe-focused presentation as a reference for readable hierarchy. Our design interpretation is restrained spacing and few competing controls.
-- [Paprika](https://www.paprikaapp.com/): reference the organization of recipes, meal planning and grocery lists; do not reproduce its screens or branding.
+[慢行羊的 Civa 刺饭介绍帖](https://xhslink.cn/o/4xtGwV55nr9), viewed in a browser. Reviewed the post text and first four carousel images, including home and menu-selection views.
 
-References were checked on 2026-11-08. They are design references, not dependencies or claims of feature parity. No external screenshots, code or recipe content are incorporated.
+Observed: today/tomorrow menu groups; want-to-cook/cooked entry points; dishes presented on plates; a checked-tablecloth treatment; bottom navigation. The post describes dish tracking, meal planning and inventory dates. Family sharing is described as future work in the original post; comments discuss subsequent changes, so that is not treated as a verified current feature audit.
 
-## Our visual direction
+Our interpretation: use a similar information hierarchy, original plate placeholders and a very subtle gray-green checked surface. Use white instead of the reference's warm textured background. No copied character art, logo, text, food photos or paper texture.
 
-| Token | Value | Use |
-| --- | --- | --- |
-| Paper | `#FBF8F2` | Main background |
-| Ink | `#3E3730` | Primary text |
-| Muted ink | `#796E63` | Supporting text |
-| Warm orange | `#B84F32` | Selected controls and emphasis |
-| Peach | `#F5E5D9` | Soft emphasis surface |
-| Hairline | `#E8E0D7` | Occasional separators |
+Earlier references: [Mela](https://www.mela.recipes/) and [Paprika](https://www.paprikaapp.com/) remain useful for recipe readability and organization.
 
-- Phone-first layout; desktop remains a quiet, narrow reading surface.
-- Use whitespace and type hierarchy before adding borders or cards.
-- Rounded, comfortable controls; no heavy shadows or decorative metric dashboards.
-- Draw a small original bowl mark with code; avoid dependence on stock photography.
-- Keep Chinese and English equally readable. Include clear selected states and visible keyboard focus.
-- Empty states show actual data state; do not invent stock counts or recommendations.
+## Rules
 
-## First UI milestone
+- Background `#FAFBFC`, main surface `#FFFFFF`, primary text `#303332`.
+- Accent `#AE553D`, muted text `#737B77`, dividers `#E9ECEA`.
+- No marketing headline, supporting slogans, inspirational quote, decorative caption or promotional footer.
+- Date and short functional labels; compact actions; no invented dishes or counts.
+- Home shows today and tomorrow; bottom navigation is Menu / Recipes / Fridge.
+- Want-to-cook and cooked views are explicit empty states until recipe records are implemented.
+- Preview status is a small label. No controls that pretend to save or schedule meals yet.
+- Chinese/English equally supported, with readable phone layout and keyboard focus.
 
-Home, pantry and shopping shell views; persistent language switch; explicit preview status. Ingredient entry, recipe matching, shopping edits and nutrition are not implemented in this milestone. Do not show working-looking controls for unavailable features.
+## Next feature
+
+Personal recipe library: add/edit/delete dishes, cuisine, ingredients, structured amounts and servings, plus want-to-cook/cooked status. Then choose dishes for today's or tomorrow's meals. Pantry matching and shopping follow this foundation. Recipe data must support the future nutrition plan.

@@ -19,3 +19,12 @@ Ingredient model and quick pantry entry: stable ingredient IDs, aliases, quantit
 ### Limits
 
 No ingredient records, working recipe catalog, editable shopping list, offline/install support, nutritional totals or hosted service yet. Language is the only stored user preference.
+
+
+## 2026-11-08 · Reference-led layout revision
+
+Reviewed the owner's Civa post text and first four images. Removed promotional copy, large hero and decorative footer. Changed the shell to white with today/tomorrow menu groups, plate placeholders, light gray-green checks, want-to-cook/cooked library views and bottom navigation. Recipe entry and meal assignment remain unimplemented.
+
+Validation: `npm run check`; browser navigation between home and wanted/cooked states; English switch and reload persistence; Chinese rendering; page width equals viewport at 320px and 390px; no console errors during checked flows.
+
+Next feature is now the personal recipe library, followed by daily meal planning, then pantry matching. Structured quantities and servings remain prerequisites for later nutrition estimates.
