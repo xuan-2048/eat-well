@@ -28,3 +28,17 @@ Reviewed the owner's Civa post text and first four images. Removed promotional c
 Validation: `npm run check`; browser navigation between home and wanted/cooked states; English switch and reload persistence; Chinese rendering; page width equals viewport at 320px and 390px; no console errors during checked flows.
 
 Next feature is now the personal recipe library, followed by daily meal planning, then pantry matching. Structured quantities and servings remain prerequisites for later nutrition estimates.
+
+
+## 2026-11-08 · Personal recipe library (local, not committed)
+
+- Preserved the local rebrand to 好好吃饭 / Eat Well.
+- Create/edit/detail/confirmed-delete; independent wanted/cooked labels; all/wanted/cooked views; cuisine and name/ingredient search.
+- Structured quantities, units, raw/cooked state, servings and ordered instructions. Explicit “to taste” amounts remain unknown, not zero.
+- Optional local JPEG/PNG/WebP photo selection, conversion to bounded JPEG and preview/removal.
+- Versioned localStorage records. Invalid stored records are reported without overwriting them. Failed writes keep drafts open.
+- Explicit optional sample recipe. No automatic inventory or recipe seeding.
+
+Validation: recipe model/persistence and bilingual coverage tests; JavaScript syntax checks; browser create → edit (2 to 3 servings, 300g to 450g, add salt to taste) → photo selection → cooked flag → reload; cuisine/search; delete cancel then confirm for a test-only record. Test record removed; an explicitly labeled tomato-and-eggs sample remains for review. Phone form/layout checks and console inspection performed.
+
+Limits: recipe amounts are recorded, not nutritionally analyzed. “Cooked” is a label, not a dated food-intake log. Meal scheduling and pantry tracking are the next steps. No cloud sync, install/offline behavior or deployment. All changes await review; no commit or push authorized.

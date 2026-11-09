@@ -1,14 +1,16 @@
-# Fridge Helper App · 冰箱食材助手
+# 好好吃饭 · Eat Well
 
 A mobile-first, bilingual pantry-to-recipe PWA, developed one small, reviewable milestone at a time.
 
-手机优先的中英双语冰箱食材助手：记录现有食材，选择菜系，找到今晚能做的菜，并把缺少的食材加入购物清单。
+手机优先的中英双语做饭应用：记录现有食材，选择菜系，找到今晚能做的菜，并把缺少的食材加入购物清单。
 
 ## Current status / 当前状态
 
-Milestone 1 is implemented: a near-white, minimal menu-first mobile shell with Chinese/English switching, persistent language preference and menu/recipe-library/pantry preview views. Ingredient tracking, recipe matching, shopping edits and nutrition remain planned. The earlier prototype remains separate; its implementation and Git history are not copied here.
+The personal recipe library is implemented locally: create/edit/delete, quantities and units, servings, instructions, optional compressed photos, independent wanted/cooked labels, cuisine filtering and ingredient/name search. Chinese/English UI is supported; user-written content stays in the language entered. Records are stored in this browser only.
 
-已完成第 1 步：近白色的菜单式手机首页框架、中英切换与语言保存。食材记录、菜谱推荐、购物编辑和营养分析尚未实现。此前的原型代码保留作参考；此仓库从小步骤重新实现。
+本地已实现“我的菜谱”：新增、编辑、确认删除，结构化食材用量、单位、生熟状态、份数、做法、选填照片，想吃／做过标记、菜系筛选和搜索。界面支持中英文；用户自己输入的内容不会自动翻译。
+
+Meal planning, pantry inventory, nutrition, cloud sync and PWA installation are not implemented yet. Optional sample data is added only by explicitly selecting “Add sample recipe”. Clearing browser data deletes local records. Do not use private/incognito browsing for records you want to keep. Photos are resized to at most 720px and stored as bounded JPEGs; a failed storage write keeps the form draft open.
 
 ## Run / 启动
 
@@ -18,7 +20,7 @@ Requires Python 3; Node.js is used for syntax checks. No package installation is
 npm start
 ```
 
-Open http://localhost:8011. Run `npm run check` for JavaScript syntax validation. This is a local preview, not an installed PWA or a deployed service.
+Open http://localhost:8011. Run `npm run check` for JavaScript syntax validation and `npm test` for recipe/persistence tests. This is a local preview, not an installed PWA or a deployed service.
 
 ## Product focus / 产品重点
 
@@ -32,9 +34,11 @@ Open http://localhost:8011. Run `npm run check` for JavaScript syntax validation
 
 ## Development approach / 开发方式
 
-See [the roadmap](docs/ROADMAP.md) and the updated [reference-led design direction](docs/DESIGN.md). Each implementation commit should represent a real, checked change. Commit at natural checkpoints during active development and at the end of each session; timestamps reflect actual work. No scheduled empty commits or artificial backdating.
+See [the roadmap](docs/ROADMAP.md) and [design direction](docs/DESIGN.md).
 
-每次先完成一个可检查的小功能，再运行适用的检查并提交。开发期间隔一段时间到达自然节点时 commit；结束当天工作前 push。不会为了凑时间或数量制造空提交，也不修改提交时间。没有运行中的自动开发或定时提交任务。
+**Current owner instruction: local changes only. Do not commit or push until the owner explicitly approves after review.** This supersedes the earlier automatic milestone-commit approach. Completed local work and verification should still be documented.
+
+**当前要求：先改本地供用户检查；用户明确确认后才能 commit、push。** 没有自动开发或定时提交任务。
 
 ## References / 参考
 

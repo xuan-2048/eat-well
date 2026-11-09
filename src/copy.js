@@ -1,6 +1,6 @@
 export const copy={
   zh:{
-    title:'冰箱食材助手',switchLabel:'Switch to English',switchText:'EN',
+    title:'好好吃饭',switchLabel:'Switch to English',switchText:'EN',
     home:'菜单',recipes:'菜谱',pantry:'冰箱',nav:'主导航',preview:'界面预览',
     today:'今日菜单',tomorrow:'明日菜单',lunch:'午餐',dinner:'晚餐',
     noMeal:'未安排',noTomorrow:'还没有安排菜品',browse:'去菜谱库',
@@ -11,7 +11,7 @@ export const copy={
     plate:'待添加的菜品',dateLocale:'zh-CN'
   },
   en:{
-    title:'Fridge Helper',switchLabel:'切换为中文',switchText:'中文',
+    title:'Eat Well',switchLabel:'切换为中文',switchText:'中文',
     home:'Menu',recipes:'Recipes',pantry:'Fridge',nav:'Main navigation',preview:'Interface preview',
     today:'Today’s menu',tomorrow:'Tomorrow’s menu',lunch:'Lunch',dinner:'Dinner',
     noMeal:'Not planned',noTomorrow:'No dishes planned yet',browse:'Browse recipes',
