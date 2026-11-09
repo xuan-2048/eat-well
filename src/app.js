@@ -1,15 +1,18 @@
 import {copy} from './copy.js';
+import {buildShortages} from './shortages.js';
+import {SHOPPING_KEY,SHOPPING_UNITS,loadShopping,saveShopping,addManualShopping,shoppingFromShortages,receiveShopping} from './shopping.js';
+import {workflowCopy} from './workflow-copy.js';
 import {foods,recognizeFood,pantryName} from './foods.js';
 import {PANTRY_KEY,PANTRY_UNITS,LOCATIONS,foodIdentity,validPantryItem,loadPantry,savePantry,upsertPantry,daysToDate,dateStatus,filterPantry} from './pantry.js';
 import {pantryCopy} from './pantry-copy.js';
-import {PLAN_KEY,MEALS,localDay,followingDay,loadPlans,savePlans,assignMeal,removeMeal,resolveMeal,validPlan} from './plans.js';
+import {PLAN_KEY,MEALS,localDay,followingDay,loadPlans,savePlans,assignMeal,removeMeal,resolveMeal,resolveMeals,scaleIngredients,validPlan} from './plans.js';
 import {planCopy} from './plan-copy.js';
 import {recipeCopy} from './recipe-copy.js';
 import {CUISINES,UNITS,STATES,ingredientKey,validRecipe,loadRecipes,saveRecipes,filterRecipes} from './recipes.js';
 const app=document.getElementById('app');
 const LANGUAGE_KEY='fridge-helper-app-language';
 const initialPage=location.hash.slice(1);
-let language='zh',page=['home','recipes','pantry'].includes(initialPage)?initialPage:'home',recipeTab='all',storageError=false;
+let language='zh',page=['home','recipes','pantry','shopping'].includes(initialPage)?initialPage:'home',recipeTab='all',storageError=false;
 let cuisineFilter='all',searchQuery='',records=[],recipeLoadError=false;
 try{const result=loadRecipes(localStorage);records=result.recipes;recipeLoadError=result.error;}catch{recipeLoadError=true;}
 let plans=[],planLoadError=false;
@@ -22,6 +25,10 @@ try{const loaded=loadPantry(localStorage);pantryItems=loaded.items;pantryLoadErr
 const pantryEditor=document.getElementById('pantry-editor');
 const pantryDelete=document.getElementById('pantry-delete');
 const F=()=>pantryCopy[language];
+let shoppingItems=[],shoppingLoadError=false,shoppingView='list',shoppingTab='pending',checkScope='today',editingDishId=null;
+try{const data=loadShopping(localStorage);shoppingItems=data.items;shoppingLoadError=data.error;}catch{shoppingLoadError=true;}
+const workflowDialog=document.getElementById('workflow-dialog');
+const W=()=>workflowCopy[language];
 const dialog=document.getElementById('recipe-dialog');
 const editor=document.getElementById('recipe-editor');
 const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -35,6 +42,7 @@ try{language=localStorage.getItem(LANGUAGE_KEY)==='en'?'en':'zh';}catch{storageE
 const icons={
   home:'<path d="M5 3v6m3-6v6M2 3v6c0 3 6 3 6 0M5 12v9M17 3c-4 5-4 10 0 10h2M19 3v18"/>',
   recipes:'<path d="M5 3h13a2 2 0 0 1 2 2v16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2 0v18M11 8h5m-5 4h5"/>',
+  shopping:'<path d="M3 4h2l3 12h11l2-9H6M9 21h.01M18 21h.01"/>',
   pantry:'<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M5 10h14M8 5v2m0 7v4"/>'
 };
 const icon=id=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[id]}</svg>`;
@@ -44,7 +52,7 @@ function render(){
   document.documentElement.lang=language==='zh'?'zh-CN':'en';
   document.title=language==='zh'?'好好吃饭 · Eat Well':'Eat Well';
   const date=new Intl.DateTimeFormat(c.dateLocale,{month:'long',day:'numeric',weekday:'short'}).format(new Date());
-  const nav=[['home',c.home],['recipes',c.recipes],['pantry',c.pantry]];
+  const nav=[['home',c.home],['recipes',c.recipes],['pantry',c.pantry],['shopping',W().shopping]];
   app.innerHTML=`<div class="shell"><header><a class="brand" href="#home" data-page="home"><img src="./mark.svg?v=2" width="30" height="30" alt=""><span>${c.title}</span></a><button class="language" type="button" data-language aria-label="${c.switchLabel}">${c.switchText}</button></header>
     <main><div class="date-row"><span>${date}</span><small>${c.preview}</small></div>
       ${page==='home'?`
@@ -53,7 +61,8 @@ function render(){
         ${menuSection(followingDay(localDay()),c.tomorrow)}`:
       page==='recipes'?`
         ${libraryHTML()}`:
-      `${pantryHTML()}`}
+      page==='pantry'?`${pantryHTML()}`:`${shoppingHTML()}`}
+      ${shoppingLoadError?`<p class="storage-error" role="alert">${W().loadError}</p>`:''}
       ${pantryLoadError?`<p class="storage-error" role="alert">${F().loadError}</p>`:''}
       ${planLoadError?`<p class="storage-error" role="alert">${P().loadError}</p>`:''}
       ${recipeLoadError?`<p class="storage-error" role="alert">${R().loadError}</p>`:''}
@@ -92,7 +101,7 @@ function openDetails(id){
   const item=records.find(r=>r.id===id);if(!item)return;
   const r=R();
   dialog.dataset.recipe=id;
-  dialog.innerHTML=`<div class="dialog-header"><span>${r.detail}</span><button type="button" data-close-dialog aria-label="${r.close}">×</button></div>${item.photo?`<img class="detail-photo" src="${item.photo}" alt="">`:''}<p class="detail-meta">${r.cuisines[item.cuisine]} · ${item.servings} ${r.servingSuffix}</p><h2 id="detail-title">${escapeHTML(item.name)}</h2><div class="status-actions"><button type="button" data-toggle-status="wanted" aria-pressed="${item.wanted}">♡ ${copy[language].wanted}</button><button type="button" data-toggle-status="cooked" aria-pressed="${item.cooked}">✓ ${copy[language].cooked}</button></div><h3>${r.ingredients}</h3><ul class="ingredient-detail">${item.ingredients.map(i=>`<li><span>${escapeHTML(i.name)}${i.state==='unspecified'?'':`<small>${r.states[i.state]}</small>`}</span><b>${amountLabel(i)}</b></li>`).join('')}</ul><h3>${r.steps}</h3><ol class="step-list">${item.steps.map(step=>`<li>${escapeHTML(step)}</li>`).join('')}</ol><div class="detail-actions"><button class="secondary" type="button" data-edit-recipe="${escapeHTML(id)}">${r.edit}</button><button class="danger" type="button" data-confirm-delete="${escapeHTML(id)}">${r.delete}</button></div>`;
+  dialog.innerHTML=`<div class="dialog-header"><span>${r.detail}</span><button type="button" data-close-dialog aria-label="${r.close}">×</button></div>${item.photo?`<img class="detail-photo" src="${item.photo}" alt="">`:''}<p class="detail-meta">${r.cuisines[item.cuisine]} · ${item.servings} ${r.servingSuffix}</p><h2 id="detail-title">${escapeHTML(item.name)}</h2><div class="status-actions"><button type="button" data-toggle-status="wanted" aria-pressed="${item.wanted}">♡ ${copy[language].wanted}</button><button type="button" data-toggle-status="cooked" aria-pressed="${item.cooked}">✓ ${copy[language].cooked}</button></div><label class="detail-scale" for="detail-servings">${W().scale}<input id="detail-servings" type="number" min="0.25" max="100" step="0.25" value="${item.servings}"></label><p class="form-note">${W().portionNote}</p><h3>${r.ingredients}</h3><ul id="detail-ingredients" class="ingredient-detail">${item.ingredients.map(i=>`<li><span>${escapeHTML(i.name)}${i.state==='unspecified'?'':`<small>${r.states[i.state]}</small>`}</span><b>${amountLabel(i)}</b></li>`).join('')}</ul><h3>${r.steps}</h3><ol class="step-list">${item.steps.map(step=>`<li>${escapeHTML(step)}</li>`).join('')}</ol><div class="detail-actions"><button class="secondary" type="button" data-edit-recipe="${escapeHTML(id)}">${r.edit}</button><button class="danger" type="button" data-confirm-delete="${escapeHTML(id)}">${r.delete}</button></div>`;
   dialog.setAttribute('aria-labelledby','detail-title');
   if(!dialog.open)dialog.showModal();
 }
@@ -186,7 +195,7 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('change',event=>{
   if(event.target.id==='cuisine-filter'){cuisineFilter=event.target.value;document.getElementById('recipe-results').innerHTML=recipeResultsHTML();}
-  if(event.target.name==='unit'){
+  if(event.target.name==='unit'&&event.target.closest('.ingredient-row')){
     const amount=event.target.closest('.ingredient-row').querySelector('[name="amount"]');
     amount.disabled=event.target.value==='toTaste';amount.required=!amount.disabled;
   }
@@ -210,77 +219,58 @@ editor.addEventListener('cancel',event=>{event.preventDefault();closeEditor();})
 
 function menuSection(date,title){
   const p=P(),c=copy[language];
-  return `<section class="menu-section live-menu"><div class="section-heading"><h${date===localDay()?'1':'2'}>${title}</h${date===localDay()?'1':'2'}><span class="menu-date">${date.slice(5).replace('-',' / ')}</span></div><div class="tablecloth">${MEALS.map(meal=>{
-    const entry=resolveMeal(plans,records,date,meal),recipe=entry?.recipe;
-    const label=`${title} · ${c[meal]} · ${recipe?recipe.name:entry?p.missing:p.arrange}`;
-    return `<div class="meal"><span class="meal-label">${c[meal]}</span><button type="button" class="plate plan-plate ${recipe?'has-recipe':''}" data-plan-date="${date}" data-plan-meal="${meal}" aria-label="${escapeHTML(label)}" ${planLoadError?'disabled':''}>${recipe?.photo?`<img src="${recipe.photo}" alt="">`:recipe?`<span class="plate-initial" aria-hidden="true">${escapeHTML(Array.from(recipe.name)[0])}</span>`:`<span aria-hidden="true">${entry?'!':'＋'}</span>`}</button><p class="meal-name ${entry&&!recipe?'missing-recipe':''}">${recipe?escapeHTML(recipe.name):entry?p.missing:c.noMeal}</p><small class="meal-portions">${entry?`${entry.plan.servings} ${p.servings}`:p.selectHint}</small></div>`;
-  }).join('')}</div></section>`;
+  return `<section class="menu-section live-menu"><div class="section-heading"><h${date===localDay()?'1':'2'}>${title}</h${date===localDay()?'1':'2'}><span class="menu-date">${date.slice(5).replace('-',' / ')}</span></div><div class="tablecloth multi-table">${MEALS.map(meal=>{
+    const entries=resolveMeals(plans,records,date,meal);
+    return `<section class="meal"><h3 class="meal-label">${c[meal]}</h3><div class="meal-dishes">${entries.map(({plan,recipe})=>`<div class="planned-dish"><button type="button" class="plate plan-plate ${recipe?'has-recipe':''}" data-plan-date="${date}" data-plan-meal="${meal}" data-dish-id="${escapeHTML(plan.id)}" aria-label="${escapeHTML(`${title} · ${c[meal]} · ${recipe?.name??p.missing}`)}" ${planLoadError?'disabled':''}>${recipe?.photo?`<img src="${recipe.photo}" alt="">`:recipe?`<span class="plate-initial" aria-hidden="true">${escapeHTML(Array.from(recipe.name)[0])}</span>`:`<span aria-hidden="true">!</span>`}</button><p class="meal-name ${!recipe?'missing-recipe':''}">${escapeHTML(recipe?.name??p.missing)}</p><small class="meal-portions">${plan.servings} ${p.servings}</small></div>`).join('')}</div><button type="button" class="add-dish" data-plan-date="${date}" data-plan-meal="${meal}" aria-label="${escapeHTML(`${title} · ${c[meal]} · ${W().addDish}`)}" ${planLoadError?'disabled':''}>＋ ${W().addDish}</button></section>`;
+  }).join('')}</div></section>${date===followingDay(localDay())?`<button type="button" class="secondary check-home" data-open-check>${W().check} ↗</button>`:''}`;
 }
-function freshRecipes(){
-  try{const data=loadRecipes(localStorage);if(data.error)return false;records=data.recipes;recipeLoadError=false;return true;}catch{return false;}
-}
-function openPlanner(date,meal){
+function freshRecipes(){try{const data=loadRecipes(localStorage);if(data.error)return false;records=data.recipes;recipeLoadError=false;return true;}catch{return false;}}
+function openPlanner(date,meal,id){
   if(!MEALS.includes(meal))return;
-  const fresh=(()=>{try{return loadPlans(localStorage);}catch{return {error:true};}})();
-  if(fresh.error){planLoadError=true;render();toast(P().loadError);return;}
-  plans=fresh.plans;
+  let fresh;try{fresh=loadPlans(localStorage);}catch{fresh={error:true};}
+  if(fresh.error){planLoadError=true;render();toast(P().loadError);return;}plans=fresh.plans;
   if(!freshRecipes()){recipeLoadError=true;render();toast(R().loadError);return;}
-  const entry=resolveMeal(plans,records,date,meal),p=P(),c=copy[language];
-  plannerSlot={date,meal};selectedRecipeId=entry?.recipe?.id??'';plannerQuery='';
+  const current=plans.find(p=>p.id===id),recipe=records.find(r=>r.id===current?.recipeId),p=P(),c=copy[language];
+  editingDishId=current?.id??null;plannerSlot={date,meal};selectedRecipeId=recipe?.id??'';plannerQuery='';
   const title=`${date===localDay()?c.today:date===followingDay(localDay())?c.tomorrow:date} · ${c[meal]}`;
-  planner.innerHTML=`<form id="plan-form"><div class="dialog-header"><h2 id="planner-title">${title}</h2><button type="button" data-close-planner aria-label="${p.close}">×</button></div><p class="detail-meta">${date}</p>
-    ${entry&&!entry.recipe?`<p class="missing-plan-note">${p.missingNote}</p>`:''}
-    ${records.length?`<label for="planner-search">${p.choose}<input id="planner-search" type="search" maxlength="100" placeholder="${p.search}"></label><div id="planner-options">${plannerOptions()}</div><p id="planner-selection" class="form-note" role="status">${plannerSelection()}</p><div class="plan-portions"><label for="planned-servings">${p.planned}<input id="planned-servings" name="servings" type="number" inputmode="decimal" min="0.25" max="100" step="0.25" value="${entry?.plan.servings??1}" required></label><p class="form-note">${p.plannedNote}</p></div>`:`<div class="empty-planner">${icon('recipes')}<p>${p.noRecipes}</p><button type="button" class="primary" data-planner-add>${p.addRecipe}</button></div>`}
-    <p class="form-error" role="alert" id="plan-error"></p><div class="plan-form-actions">${entry?`<button type="button" class="danger" data-remove-plan>${p.remove}</button>`:''}<div><button type="button" class="secondary" data-close-planner>${p.cancel}</button>${records.length?`<button type="submit" class="primary">${p.save}</button>`:''}</div></div></form>`;
+  planner.innerHTML=`<form id="plan-form"><div class="dialog-header"><h2 id="planner-title">${title}</h2><button type="button" data-close-planner aria-label="${p.close}">×</button></div><p class="detail-meta">${current?W().editDish:W().addDish} · ${date}</p>${current&&!recipe?`<p class="missing-plan-note">${p.missingNote}</p>`:''}
+    ${records.length?`<label for="planner-search">${p.choose}<input id="planner-search" type="search" maxlength="100" placeholder="${p.search}"></label><div id="planner-options">${plannerOptions()}</div><p id="planner-selection" class="form-note" role="status">${plannerSelection()}</p><div class="plan-portions"><label for="planned-servings">${p.planned}<input id="planned-servings" name="servings" type="number" inputmode="decimal" min="0.25" max="100" step="0.25" value="${current?.servings??1}" required></label><p class="form-note">${p.plannedNote}</p></div><div id="planner-ingredients">${plannerIngredientPreview(current?.servings??1)}</div>`:`<div class="empty-planner"><p>${p.noRecipes}</p><button type="button" class="primary" data-planner-add>${p.addRecipe}</button></div>`}
+    <p class="form-error" role="alert" id="plan-error"></p><div class="plan-form-actions">${current?`<button type="button" class="danger" data-remove-plan>${p.remove}</button>`:''}<div><button type="button" class="secondary" data-close-planner>${p.cancel}</button>${records.length?`<button type="submit" class="primary">${p.save}</button>`:''}</div></div></form>`;
   planner.setAttribute('aria-labelledby','planner-title');planner.showModal();
 }
 function plannerSelection(){const recipe=records.find(r=>r.id===selectedRecipeId);return recipe?`${P().selected}: ${escapeHTML(recipe.name)}`:P().notSelected;}
+function scaledList(recipe,servings){return scaleIngredients(recipe,servings).map(i=>`<li><span>${escapeHTML(i.name)}</span><b>${amountLabel(i)}</b></li>`).join('');}
+function plannerIngredientPreview(servings){const recipe=records.find(r=>r.id===selectedRecipeId);if(!recipe||!Number.isFinite(servings)||servings<=0||servings>100)return '';return `<h3>${W().planPreview}</h3><ul class="ingredient-detail">${scaledList(recipe,servings)}</ul>`;}
 function plannerOptions(){
-  const p=P(),visible=filterRecipes(records,{query:plannerQuery});
-  if(!visible.length)return `<p class="planner-no-match">${p.noMatch}<small>${p.searchHint}</small></p>`;
+  const p=P(),visible=filterRecipes(records,{query:plannerQuery});if(!visible.length)return `<p class="planner-no-match">${p.noMatch}</p>`;
   return `<fieldset class="planner-choices"><legend class="sr-only">${p.choose}</legend>${visible.map(recipe=>`<label class="planner-choice"><input type="radio" name="recipeId" value="${escapeHTML(recipe.id)}" ${selectedRecipeId===recipe.id?'checked':''}><span class="choice-thumbnail">${recipe.photo?`<img src="${recipe.photo}" alt="">`:`<span aria-hidden="true">${escapeHTML(Array.from(recipe.name)[0])}</span>`}</span><span class="choice-name"><strong>${escapeHTML(recipe.name)}</strong><small>${R().cuisines[recipe.cuisine]} · ${p.base} ${recipe.servings} ${p.servings}</small></span></label>`).join('')}</fieldset>`;
 }
-function applyPlanChange(operation){
-  // Merge into the most recent stored collection so editing one slot doesn't
-  // overwrite changes another open tab made to the other slots.
-  const fresh=loadPlans(localStorage);
-  if(fresh.error)throw new Error(P().loadError);
-  const next=operation(fresh.plans);
-  savePlans(localStorage,next);plans=next;planLoadError=false;
-}
+function applyPlanChange(operation){const fresh=loadPlans(localStorage);if(fresh.error)throw new Error(P().loadError);const next=operation(fresh.plans);savePlans(localStorage,next);plans=next;planLoadError=false;}
 document.addEventListener('click',event=>{
   const target=event.target.closest('button');if(!target)return;
-  if(target.dataset.planDate)openPlanner(target.dataset.planDate,target.dataset.planMeal);
+  if(target.dataset.planDate)openPlanner(target.dataset.planDate,target.dataset.planMeal,target.dataset.dishId);
   else if(target.hasAttribute('data-close-planner'))planner.close();
-  else if(target.hasAttribute('data-planner-add')){
-    planner.close();page='recipes';recipeTab='all';render();openEditor();
-  }else if(target.hasAttribute('data-remove-plan')){
-    try{applyPlanChange(current=>removeMeal(current,plannerSlot.date,plannerSlot.meal));}
-    catch{planner.querySelector('#plan-error').textContent=P().saveError;return;}
-    planner.close();render();toast(P().removed);
-  }
+  else if(target.hasAttribute('data-planner-add')){planner.close();page='recipes';recipeTab='all';render();openEditor();}
+  else if(target.hasAttribute('data-remove-plan')){try{applyPlanChange(current=>removeMeal(current,plannerSlot.date,plannerSlot.meal,editingDishId));}catch{planner.querySelector('#plan-error').textContent=P().saveError;return;}planner.close();render();toast(P().removed);}
 });
 document.addEventListener('input',event=>{
-  if(event.target.id==='planner-search'){
-    plannerQuery=event.target.value;planner.querySelector('#planner-options').innerHTML=plannerOptions();
-  }
+  if(event.target.id==='planner-search'){plannerQuery=event.target.value;planner.querySelector('#planner-options').innerHTML=plannerOptions();}
+  if(event.target.id==='planned-servings')planner.querySelector('#planner-ingredients').innerHTML=plannerIngredientPreview(Number(event.target.value));
+  if(event.target.id==='detail-servings'){const recipe=records.find(r=>r.id===dialog.dataset.recipe),n=Number(event.target.value);if(recipe&&n>0&&n<=100)dialog.querySelector('#detail-ingredients').innerHTML=scaledList(recipe,n);}
 });
-document.addEventListener('change',event=>{
-  if(event.target.name==='recipeId'){selectedRecipeId=event.target.value;planner.querySelector('#planner-selection').innerHTML=plannerSelection();}
-});
+document.addEventListener('change',event=>{if(event.target.name==='recipeId'){selectedRecipeId=event.target.value;planner.querySelector('#planner-selection').innerHTML=plannerSelection();planner.querySelector('#planner-ingredients').innerHTML=plannerIngredientPreview(Number(planner.querySelector('#planned-servings').value));}});
 document.addEventListener('submit',event=>{
-  if(event.target.id!=='plan-form')return;event.preventDefault();
-  const error=planner.querySelector('#plan-error');
-  if(!freshRecipes()){error.textContent=R().loadError;return;}
-  if(!records.some(recipe=>recipe.id===selectedRecipeId)){error.textContent=selectedRecipeId?P().recipeChanged:P().invalid;return;}
-  const plan={...plannerSlot,recipeId:selectedRecipeId,servings:Number(new FormData(event.target).get('servings'))};
+  if(event.target.id!=='plan-form')return;event.preventDefault();const error=planner.querySelector('#plan-error');
+  if(!freshRecipes()){error.textContent=R().loadError;return;}if(!records.some(r=>r.id===selectedRecipeId)){error.textContent=P().invalid;return;}
+  const plan={id:editingDishId??uid(),...plannerSlot,recipeId:selectedRecipeId,servings:Number(new FormData(event.target).get('servings'))};
   if(!validPlan(plan)){error.textContent=P().invalid;return;}
-  try{applyPlanChange(current=>assignMeal(current,plan,records));}
-  catch{error.textContent=P().saveError;return;}
+  try{applyPlanChange(current=>{if(editingDishId&&!current.some(p=>p.id===editingDishId))throw new Error('Removed');return assignMeal(current,plan,records);});}
+  catch(e){error.textContent=e.message==='Duplicate dish'?W().duplicate:P().saveError;return;}
   planner.close();render();toast(P().saved);
 });
 function refreshLocalData(){
   try{
+    const shopping=loadShopping(localStorage);shoppingItems=shopping.items;shoppingLoadError=shopping.error;
     const inventory=loadPantry(localStorage);pantryItems=inventory.items;pantryLoadError=inventory.error;
     const latest=loadPlans(localStorage);plans=latest.plans;planLoadError=latest.error;
     const latestRecipes=loadRecipes(localStorage);records=latestRecipes.recipes;recipeLoadError=latestRecipes.error;
@@ -288,10 +278,10 @@ function refreshLocalData(){
   renderedDay=localDay();render();
 }
 window.addEventListener('storage',event=>{
-  if(event.key===PLAN_KEY||event.key==='eat-well-recipes-v1'||event.key===PANTRY_KEY||event.key===null)refreshLocalData();
+  if(event.key===PLAN_KEY||event.key==='eat-well-recipes-v1'||event.key===PANTRY_KEY||event.key===SHOPPING_KEY||event.key===null)refreshLocalData();
 });
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open)refreshLocalData();});
-setInterval(()=>{if(localDay()!==renderedDay&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open)refreshLocalData();},30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open&&!workflowDialog.open)refreshLocalData();});
+setInterval(()=>{if(localDay()!==renderedDay&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open&&!workflowDialog.open)refreshLocalData();},30000);
 
 function pantryAmount(item){const singular={piece:'pc',pack:'pack',bottle:'bottle'};const unit=language==='en'&&item.amount===1?(singular[item.unit]??F().units[item.unit]):F().units[item.unit];return `${item.amount} ${unit}`;}
 function pantryDateLabel(item){
@@ -308,7 +298,7 @@ function pantryHTML(){
 function pantryResultsHTML(){
   const f=F(),items=filterPantry(pantryItems,{location:pantryLocation,dateFilter:pantryDateFilter,query:pantryQuery});
   if(!items.length)return `<div class="empty-state">${icon('pantry')}<h2>${pantryItems.length?f.noMatch:f.none}</h2><p>${pantryItems.length?f.noMatchHint:f.emptyHint}</p></div>`;
-  return `<div class="pantry-entries">${items.map(item=>{const name=pantryName(item,language);return `<article class="pantry-entry"><div class="pantry-initial" aria-hidden="true">${escapeHTML(Array.from(name)[0])}</div><div class="pantry-entry-info"><h2>${escapeHTML(name)}</h2><p>${pantryAmount(item)} · ${f.locations[item.location]}</p><small class="date-label date-${dateStatus(item.date)}">${escapeHTML(pantryDateLabel(item))}</small></div><div class="pantry-entry-actions"><button type="button" data-pantry-edit="${escapeHTML(item.id)}" aria-label="${f.edit} ${escapeHTML(name)}">${f.edit}</button><button type="button" class="remove-entry" data-pantry-delete="${escapeHTML(item.id)}" aria-label="${f.delete} ${escapeHTML(name)}">${f.delete}</button></div></article>`;}).join('')}</div>`;
+  return `<div class="pantry-entries">${items.map(item=>{const name=pantryName(item,language);return `<article class="pantry-entry"><div class="pantry-initial" aria-hidden="true">${escapeHTML(Array.from(name)[0])}</div><div class="pantry-entry-info"><h2>${escapeHTML(name)}</h2><p>${pantryAmount(item)} · ${f.locations[item.location]} · ${R().states[item.state??'unspecified']}</p><small class="date-label date-${dateStatus(item.date)}">${escapeHTML(pantryDateLabel(item))}</small></div><div class="pantry-entry-actions"><button type="button" data-pantry-edit="${escapeHTML(item.id)}" aria-label="${f.edit} ${escapeHTML(name)}">${f.edit}</button><button type="button" class="remove-entry" data-pantry-delete="${escapeHTML(item.id)}" aria-label="${f.delete} ${escapeHTML(name)}">${f.delete}</button></div></article>`;}).join('')}</div>`;
 }
 function recognitionHTML(name){
   const food=recognizeFood(name);return food?`${F().recognized}：${food[language]} <span>${food[language==='zh'?'en':'zh']}</span>`:name.trim()?F().custom:'';
@@ -321,6 +311,7 @@ function openPantryEditor(id){
   pantryEditor.innerHTML=`<form id="pantry-form"><div class="dialog-header"><h2 id="pantry-editor-title">${item?f.edit:f.add}</h2><button type="button" data-pantry-close aria-label="${f.close}">×</button></div>
     <label for="pantry-name">${f.name}<input id="pantry-name" name="name" list="food-suggestions" value="${escapeHTML(item?.name??'')}" maxlength="80" placeholder="${f.nameHint}" required aria-describedby="food-recognition"></label><datalist id="food-suggestions">${foods.map(food=>`<option value="${food[language]}">${food[language==='zh'?'en':'zh']}</option>`).join('')}</datalist><p class="food-recognition" id="food-recognition" role="status">${recognitionHTML(item?.name??'')}</p>
     <div class="form-pair pantry-amount"><label for="pantry-amount">${f.amount}<input id="pantry-amount" name="amount" type="number" inputmode="decimal" min="0.000001" max="100000" step="any" value="${item?.amount??1}" required></label><label for="pantry-unit">${f.unit}<select id="pantry-unit" name="unit">${PANTRY_UNITS.map(id=>`<option value="${id}" ${(item?.unit??'g')===id?'selected':''}>${f.units[id]}</option>`).join('')}</select></label></div>
+    <label for="pantry-state">${R().state}<select id="pantry-state" name="state">${STATES.map(id=>`<option value="${id}" ${(item?.state??'unspecified')===id?'selected':''}>${R().states[id]}</option>`).join('')}</select></label>
     <label for="pantry-storage">${f.location}<select id="pantry-storage" name="location">${LOCATIONS.map(id=>`<option value="${id}" ${(item?.location??'fridge')===id?'selected':''}>${f.locations[id]}</option>`).join('')}</select></label>
     <label for="pantry-date">${f.date}<input id="pantry-date" name="date" type="date" min="1000-01-01" max="9999-12-31" value="${item?.date??''}" aria-describedby="pantry-date-note"></label><p class="form-note" id="pantry-date-note">${f.dateHint}</p><p class="form-note pantry-separate">${f.separate}</p><p class="form-error" id="pantry-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" data-pantry-close>${f.cancel}</button><button type="submit" class="primary">${f.save}</button></div></form>`;
   pantryEditor.setAttribute('aria-labelledby','pantry-editor-title');pantryEditor.showModal();
@@ -358,9 +349,79 @@ document.addEventListener('submit',event=>{
   try{fresh=freshPantry();}catch{error.textContent=F().loadError;return;}
   const old=fresh.find(i=>i.id===pantryEditingId);
   if(pantryEditingId&&!old){error.textContent=F().changed;return;}
-  const item={id:old?.id??uid(),name,...foodIdentity(name),amount:Number(form.get('amount')),unit:form.get('unit'),location:form.get('location'),date:form.get('date'),createdAt:old?.createdAt??now,updatedAt:now};
+  const item={id:old?.id??uid(),name,...foodIdentity(name),amount:Number(form.get('amount')),unit:form.get('unit'),location:form.get('location'),date:form.get('date'),state:form.get('state'),createdAt:old?.createdAt??now,updatedAt:now};
   if(!validPantryItem(item)){error.textContent=F().invalid;return;}
   try{const next=upsertPantry(fresh,item,{editing:Boolean(pantryEditingId)});savePantry(localStorage,next);pantryItems=next;pantryLoadError=false;}
   catch{error.textContent=F().saveError;return;}
   pantryEditor.close();pantryQuery='';pantryLocation='all';pantryDateFilter='all';render();toast(F().saved);
+});
+
+function scopeDates(){const today=localDay(),tomorrow=followingDay(today);return checkScope==='both'?[today,tomorrow]:[checkScope==='tomorrow'?tomorrow:today];}
+function reportNow(){
+  try{
+    const p=loadPlans(localStorage),r=loadRecipes(localStorage),i=loadPantry(localStorage);
+    if(p.error||r.error||i.error)throw new Error('Unreadable');
+    return {...buildShortages(p.plans,r.recipes,i.items,scopeDates()),hasPlans:p.plans.some(item=>scopeDates().includes(item.date)),error:false};
+  }catch{return {rows:[],warnings:[],hasPlans:false,error:true};}
+}
+function quantityText(amount,unit){if(unit==='toTaste')return amount===null?R().units.toTaste:'—';if(amount===null)return unit==='toTaste'?R().units.toTaste:W().unknown;return `${new Intl.NumberFormat(language==='zh'?'zh-CN':'en-US',{maximumFractionDigits:6}).format(amount)} ${R().units[unit]??F().units[unit]??unit}`;}
+function foodLabel(name){return recognizeFood(name)?.[language]??name;}
+function shoppingHTML(){
+  const w=W();return `<section class="library workflow"><div class="section-heading"><h1>${w.shopping}</h1><button type="button" class="primary" data-shopping-add>＋ ${w.add}</button></div><div class="recipe-tabs" role="group" aria-label="${w.shopping}">${['list','check'].map(id=>`<button type="button" data-shopping-view="${id}" aria-pressed="${shoppingView===id}">${w[id]}</button>`).join('')}</div>${shoppingView==='check'?checkHTML():shoppingListHTML()}<p class="local-note">${w.local}</p></section>`;
+}
+function checkHTML(){
+  const w=W(),report=reportNow();
+  return `<div class="scope-buttons" role="group" aria-label="${w.check}">${['today','tomorrow','both'].map(id=>`<button type="button" class="secondary" data-check-scope="${id}" aria-pressed="${checkScope===id}">${w[id]}</button>`).join('')}</div><p class="form-note">${w.compareNote} ${w.dateNote}</p>
+    ${report.error?`<p class="form-error" role="alert">${w.loadError}</p>`:report.hasPlans?`${report.warnings.length?`<p class="missing-plan-note">${w.missingRecipe}</p>`:''}<div class="shortage-rows">${report.rows.map((row,index)=>`<article class="shortage-row"><div class="section-heading"><h2>${escapeHTML(foodLabel(row.name))}</h2><span class="shortage-status ${row.status}">${w[row.status]}</span></div><p class="requirement-state">${R().states[row.state]}</p><dl class="quantity-grid"><div><dt>${w.need}</dt><dd>${quantityText(row.required,row.unit)}</dd></div><div><dt>${w.have}</dt><dd>${quantityText(row.available,row.unit)}</dd></div><div><dt>${w.missing}</dt><dd>${quantityText(row.missing,row.unit)}</dd></div></dl>${row.status==='review'?`<p class="form-note">${row.reasons.map(reason=>w.reason[reason]).join(' ')}</p><button type="button" class="text-link" data-review-purchase="${index}">${w.reviewPurchase} ↗</button>`:''}</article>`).join('')}</div><p class="form-note">${w.reviewNote}</p><button type="button" class="primary full" data-generate-shopping ${report.error?'disabled':''}>${w.generate}</button><p class="form-note generate-note">${w.replaceNote}</p>`:`<div class="empty-state"><h2>${w.emptyPlan}</h2></div><button type="button" class="primary full" data-generate-shopping>${w.generate}</button><p class="form-note generate-note">${w.replaceNote}</p>`}`;
+}
+function shoppingListHTML(){
+  const w=W(),items=shoppingItems.filter(i=>shoppingTab==='received'?i.received:shoppingTab==='bought'?i.bought&&!i.received:!i.bought);
+  return `<div class="scope-buttons shopping-groups" role="group" aria-label="${w.list}">${['pending','bought','received'].map(tab=>`<button type="button" class="secondary" data-shopping-tab="${tab}" aria-pressed="${shoppingTab===tab}">${w[tab]} <small>${shoppingItems.filter(i=>tab==='received'?i.received:tab==='bought'?i.bought&&!i.received:!i.bought).length}</small></button>`).join('')}</div>${items.length?`<div class="shopping-entries">${items.map(item=>{const shown=item.received&&item.receipt?{...item,...item.receipt}:item;return `<article class="shopping-entry"><div class="shopping-entry-main">${!item.received?`<label class="purchase-check"><input type="checkbox" data-shopping-bought="${escapeHTML(item.id)}" ${item.bought?'checked':''} aria-label="${w.bought} ${escapeHTML(foodLabel(item.name))}"></label>`:`<span class="received-tick" aria-hidden="true">✓</span>`}<div><h2>${escapeHTML(foodLabel(shown.name))}</h2><p>${quantityText(shown.amount,shown.unit)} · ${R().states[shown.state]}</p><small>${item.source==='menu'?w.sourceMenu:w.sourceManual}</small></div></div><div class="shopping-entry-actions">${item.bought&&!item.received?`<button type="button" class="primary" data-receive-shopping="${escapeHTML(item.id)}">${w.receive}</button>`:''}<button type="button" class="text-link remove-shopping" data-shopping-remove="${escapeHTML(item.id)}">${w.remove}</button></div></article>`;}).join('')}</div>`:`<div class="empty-state">${icon('shopping')}<h2>${shoppingItems.length?w.noGroup:w.noItems}</h2></div>`}`;
+}
+function freshShopping(){const data=loadShopping(localStorage);if(data.error)throw new Error('Unreadable shopping data');return data.items;}
+function writeShopping(next){saveShopping(localStorage,next);shoppingItems=next;shoppingLoadError=false;}
+function openShoppingForm(seed){
+  const w=W();workflowDialog.innerHTML=`<form id="shopping-form"><div class="dialog-header"><h2 id="workflow-title">${seed?w.reviewPurchase:w.add}</h2><button type="button" data-workflow-close aria-label="${w.close}">×</button></div>${seed?`<p class="form-note">${seed.reasons.map(reason=>w.reason[reason]).join(' ')}</p>`:''}<label for="shop-name">${w.name}<input id="shop-name" name="name" maxlength="80" value="${escapeHTML(seed?.name??'')}" required></label><div class="form-pair"><label for="shop-amount">${w.amount}<input id="shop-amount" name="amount" type="number" min="0.000001" max="100000000" step="any" inputmode="decimal" value="${seed?.missing??''}"></label><label for="shop-unit">${w.unit}<select id="shop-unit" name="unit">${SHOPPING_UNITS.map(id=>`<option value="${id}" ${(seed?.unit??'g')===id?'selected':''}>${R().units[id]??F().units[id]??id}</option>`).join('')}</select></label></div><label for="shop-state">${w.state}<select id="shop-state" name="state">${STATES.map(id=>`<option value="${id}" ${(seed?.state??'unspecified')===id?'selected':''}>${R().states[id]}</option>`).join('')}</select></label><p id="workflow-error" class="form-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" data-workflow-close>${w.cancel}</button><button class="primary">${w.save}</button></div></form>`;
+  workflowDialog.setAttribute('aria-labelledby','workflow-title');workflowDialog.showModal();
+}
+function openReceipt(id){
+  let item;try{shoppingItems=freshShopping();item=shoppingItems.find(i=>i.id===id);}catch{toast(W().loadError);return;}
+  if(!item||!item.bought||item.received)return;const w=W();
+  workflowDialog.innerHTML=`<form id="receipt-form" data-receipt-id="${escapeHTML(id)}"><div class="dialog-header"><h2 id="workflow-title">${w.confirmReceipt}</h2><button type="button" data-workflow-close aria-label="${w.close}">×</button></div><p class="form-note receipt-note">${w.receiptNote}</p><label for="receive-name">${w.name}<input id="receive-name" name="name" maxlength="80" value="${escapeHTML(item.name)}" required></label><div class="form-pair"><label for="receive-amount">${w.quantity}<input id="receive-amount" name="amount" type="number" min="0.000001" max="100000" step="any" inputmode="decimal" value="${PANTRY_UNITS.includes(item.unit)?item.amount??'':''}" required></label><label for="receive-unit">${w.unit}<select id="receive-unit" name="unit" required>${!PANTRY_UNITS.includes(item.unit)?`<option value="" selected disabled>—</option>`:''}${PANTRY_UNITS.map(unit=>`<option value="${unit}" ${item.unit===unit?'selected':''}>${F().units[unit]}</option>`).join('')}</select></label></div><label for="receive-state">${w.state}<select id="receive-state" name="state">${STATES.map(state=>`<option value="${state}" ${item.state===state?'selected':''}>${R().states[state]}</option>`).join('')}</select></label><label for="receive-location">${w.location}<select id="receive-location" name="location">${LOCATIONS.map(location=>`<option value="${location}">${F().locations[location]}</option>`).join('')}</select></label><label for="receive-date">${w.date}<input id="receive-date" name="date" type="date" min="1000-01-01" max="9999-12-31"></label><p class="form-note">${F().dateHint}</p><p id="workflow-error" class="form-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" data-workflow-close>${w.cancel}</button><button class="primary">${w.confirm}</button></div></form>`;
+  workflowDialog.setAttribute('aria-labelledby','workflow-title');workflowDialog.showModal();
+}
+document.addEventListener('click',event=>{
+  const target=event.target.closest('button');if(!target)return;
+  if(target.hasAttribute('data-open-check')){page='shopping';shoppingView='check';render();}
+  else if(target.dataset.shoppingView){shoppingView=target.dataset.shoppingView;render();}
+  else if(target.dataset.checkScope){checkScope=target.dataset.checkScope;render();}
+  else if(target.dataset.shoppingTab){shoppingTab=target.dataset.shoppingTab;render();}
+  else if(target.hasAttribute('data-shopping-add'))openShoppingForm();
+  else if(target.hasAttribute('data-review-purchase')){const report=reportNow();if(!report.error)openShoppingForm(report.rows[Number(target.dataset.reviewPurchase)]);}
+  else if(target.hasAttribute('data-workflow-close'))workflowDialog.close();
+  else if(target.hasAttribute('data-generate-shopping')){
+    const report=reportNow();if(report.error){toast(W().loadError);return;}
+    try{writeShopping(shoppingFromShortages(freshShopping(),report.rows,uid));}catch{toast(W().error);return;}
+    shoppingView='list';shoppingTab='pending';render();toast(W().generated);
+  }else if(target.dataset.receiveShopping)openReceipt(target.dataset.receiveShopping);
+  else if(target.dataset.shoppingRemove){try{writeShopping(freshShopping().filter(i=>i.id!==target.dataset.shoppingRemove));}catch{toast(W().error);return;}render();}
+});
+document.addEventListener('change',event=>{
+  if(event.target.dataset.shoppingBought){const id=event.target.dataset.shoppingBought;try{writeShopping(freshShopping().map(i=>i.id===id&&!i.received?{...i,bought:event.target.checked}:i));}catch{toast(W().error);}render();}
+});
+document.addEventListener('submit',event=>{
+  if(!['shopping-form','receipt-form'].includes(event.target.id))return;event.preventDefault();
+  const data=new FormData(event.target),error=workflowDialog.querySelector('#workflow-error');
+  if(event.target.id==='shopping-form'){
+    const entry={name:data.get('name').trim(),amount:data.get('amount')===''?null:Number(data.get('amount')),unit:data.get('unit'),state:data.get('state')};
+    let current,next;
+    try{current=freshShopping();}catch{error.textContent=W().loadError;return;}
+    try{next=addManualShopping(current,entry,uid);}catch{error.textContent=W().invalid;return;}
+    try{writeShopping(next);}catch{error.textContent=W().error;return;}
+    workflowDialog.close();shoppingView='list';shoppingTab='pending';render();toast(W().saved);
+  }else{
+    const details={name:data.get('name').trim(),amount:Number(data.get('amount')),unit:data.get('unit'),state:data.get('state'),location:data.get('location'),date:data.get('date')};
+    try{const result=receiveShopping(localStorage,event.target.dataset.receiptId,details);shoppingItems=result.items;pantryItems=result.pantry;}catch{error.textContent=W().error;return;}
+    workflowDialog.close();shoppingTab='received';render();toast(W().receivedToast);
+  }
 });

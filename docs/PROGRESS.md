@@ -79,3 +79,20 @@ Owner confirmed all completed local changes should commit/push together at 01:07
 README now contains three real local-app screenshots in docs/images: menu.jpg, recipe.jpg and pantry.jpg. Sample recipe is identified in the caption; pantry screenshot is an unsaved example and no inventory was added for the screenshot. Removed internal development/authorization wording from README and verified all image references exist.
 
 Expanded future scope discussed with owner: multiple dishes per meal, serving-based ingredient scaling, pantry missing-item comparison, shopping list, weekly menu/history, export/restore and later nutrition. These remain planned and are not included as implemented features in this handoff.
+
+## 2026-11-09 · Multiple dishes, ingredient checks and shopping
+
+Implemented the four approved features locally:
+
+- Date-bound meals now contain independent dish assignments. Add, replace, change servings or remove a single dish without altering its neighbours. Version-1 single-dish menus load without writes; the first version-2 save preserves the original payload under a backup key.
+- Ingredient previews in recipe details and the meal picker scale measured quantities by planned servings. “To taste” remains unknown, and source recipe amounts remain unchanged.
+- Today/tomorrow/both-days checks aggregate common-food aliases and allocate each pantry batch once. kg/g and L/ml convert; incompatible units, uncertain preparation and unmeasured quantities need explicit review. Stock dated before a planned meal is excluded for that date. Deleted recipe references raise a warning.
+- Shopping regeneration replaces pending menu items while retaining manual, purchased and received entries. Compatible requirements aggregate; compatible manual quantities merge. Purchased is distinct from received. Receipt confirmation records actual quantities separately and uses deterministic pantry IDs to make retries safe after a partial write failure.
+
+Pantry records now optionally include preparation state, with legacy records preserved. New UI includes a fourth Shopping navigation tab, day scopes, quantity comparisons, manual confirmation and purchase/receipt groups. Saved collections are refreshed before mutations. Storage failures leave form drafts open.
+
+README expanded with the real workflow, comparison rules, local setup, storage and migration details, source layout, checks and remaining features. Replaced the three-column image table with individual larger English screenshots; added the full ingredient-check image. Demo records live on localhost:8013, separate from the owner's localhost:8011 data.
+
+Verification: 39 automated tests pass; npm run check passes. Browser checks include adding two dishes to the same lunch, reload persistence, removing one without affecting the other, and a 2→3 serving preview (300→450 g tomatoes and 2→3 eggs). Two dishes requiring 650 g tomatoes minus 0.2 kg stock produce a 450 g gap. Repeated list generation does not duplicate items. Pack-versus-piece garlic and to-taste oil/salt require review. Purchasing 500 g tomatoes adds a separate 500 g batch; purchasing 6 eggs for a 3-egg requirement displays and stores the actual 6. After receipt, the stock comparison counts these groceries. Automated tests also simulate a failed second receipt write followed by retry, preserving one pantry batch and its original confirmed quantity. English/Chinese workflow views checked; page width equals viewport at 320 px, including receipt and meal-picker dialogs; 390 px screenshots captured; no warning/error logs in tested flows.
+
+Submission checkpoint: the owner moved this release forward to 2026-11-09 and requested an immediate commit and push. It follows menu/pantry checkpoint bb62a83. Weekly planning, cooking history, backup/restore and nutrition remain planned. The superseded 2026-11-10 scheduled task will be removed after a successful push.

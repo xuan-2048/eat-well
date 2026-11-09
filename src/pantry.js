@@ -1,4 +1,4 @@
-import {ingredientKey} from './recipes.js';
+import {STATES,ingredientKey} from './recipes.js';
 import {foodById,recognizeFood,pantryName} from './foods.js';
 import {validDay,localDay} from './plans.js';
 export const PANTRY_KEY='eat-well-pantry-v1';
@@ -11,6 +11,7 @@ export function validPantryItem(item){
     &&(item.foodId===null||Object.hasOwn(foodById,item.foodId))
     &&item.key===(item.foodId===null?ingredientKey(item.name):foodById[item.foodId].key)
     &&typeof item.amount==='number'&&Number.isFinite(item.amount)&&item.amount>0&&item.amount<=100000
+    &&(item.state===undefined||STATES.includes(item.state))
     &&PANTRY_UNITS.includes(item.unit)&&LOCATIONS.includes(item.location)
     &&(item.date===''||validDay(item.date))
     &&typeof item.createdAt==='string'&&Number.isFinite(Date.parse(item.createdAt))

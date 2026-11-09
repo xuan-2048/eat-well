@@ -10,3 +10,15 @@ test('recipe forms and dictionary options have equivalent English and Chinese co
     for(const id of STATES)assert.ok(recipeCopy[lang].states[id]);
   }
 });
+
+import {workflowCopy} from '../src/workflow-copy.js';
+test('menu and shopping text has equivalent bilingual coverage, including review reasons',()=>{
+  assert.deepEqual(Object.keys(workflowCopy.zh).sort(),Object.keys(workflowCopy.en).sort());
+  assert.deepEqual(Object.keys(workflowCopy.zh.reason).sort(),Object.keys(workflowCopy.en.reason).sort());
+  for(const lang of ['en','zh']){
+    for(const value of Object.values(workflowCopy[lang])){
+      if(typeof value==='string')assert.ok(value.trim());
+      else for(const message of Object.values(value))assert.ok(message.trim());
+    }
+  }
+});

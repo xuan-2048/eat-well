@@ -1,38 +1,31 @@
-# Incremental roadmap / 逐步开发计划
+# Roadmap
 
-Started: 2026-11-08 (America/New_York). Milestones describe scope, not a promise of unattended future execution.
+Eat Well connects a personal recipe library with meal planning, fridge stock and grocery shopping. The current app runs locally in a phone browser with Chinese and English interfaces.
 
-| Step | Small deliverable | Acceptance check | Status |
-| --- | --- | --- | --- |
-| 0 | Project definition, reference research, prototype catalog | Docs distinguish implemented features from plans | Done |
-| 1 | Minimal mobile app shell and Chinese/English switch | Both languages render at phone width; selection persists after reload | Done |
-| 2 | Personal recipe library: add/edit/delete and want-to-cook/cooked status | Persist bilingual-compatible dish records, cuisine, ingredient quantities, units and servings; handle unknown inputs | Done locally; awaiting review |
-| 3 | Today's/tomorrow's meal planning | Assign a saved dish to a meal, replace/remove it, and preserve planned date and servings | Done locally; delayed commit/push authorized |
-| 4 | Ingredient model and quick pantry entry | Add/edit/remove, alias handling, optional dates and reload persistence | Done locally; 09:00 commit/push authorized |
-| 5 | Multiple dishes per meal and portion scaling | Add/remove individual dishes without replacing the whole meal; scale measured ingredients and preserve unknown amounts | Planned |
-| 6 | Pantry comparison and missing ingredients | Match aliases, compare compatible units and show uncertain conversions explicitly | Planned |
-| 7 | Shopping list from selected days | Aggregate needs, subtract usable known stock, deduplicate and keep purchased state | Planned |
-| 8 | Weekly menu and cooking history | Browse dates, copy a meal, and distinguish a plan from a confirmed cooking record | Planned |
-| 9 | Export and restore | Versioned JSON backup with validation and explicit merge/replace behavior | Planned |
-| 10 | Nutrition per recipe and serving | Source-backed quantities, consistent serving calculations and visible unknown data | Planned |
-| 11 | Actual meal intake | Record consumed portions separately from plans and aggregate daily nutrition | Planned |
-| 12 | Installable/offline PWA | Manifest/icons, HTTPS, cache upgrade and real phone installation checks | Planned |
+| Step | Deliverable | Status |
+| --- | --- | --- |
+| 1 | Mobile layout, shared typography and language switch | Implemented |
+| 2 | Recipe library with quantities, photos, cuisine and wanted/cooked labels | Implemented |
+| 3 | Today/tomorrow lunch and dinner planning | Implemented |
+| 4 | Fridge batches, ingredient aliases, locations and date filters | Implemented |
+| 5 | Several dishes per meal and serving-based ingredient previews | Implemented |
+| 6 | Selected-day ingredient check with compatible unit and preparation matching | Implemented |
+| 7 | Shopping list, purchased state and confirmed actual-quantity pantry receipt | Implemented |
+| 8 | Weekly menu and copying meals | Planned |
+| 9 | Cooking records with actual portions, notes and photos | Planned |
+| 10 | Versioned export and restore | Planned |
+| 11 | Nutrition per recipe and serving | Planned |
+| 12 | Daily nutrition from actual intake | Planned |
+| 13 | Offline support and home-screen installation | Planned |
 
-Priorities updated after reviewing the owner's Civa reference on 2026-11-08: recipe library and meal planning precede pantry matching. Today's UI remains a shell; the updated plan does not mean those features are implemented.
+## Current milestone
 
-## Checkpoint policy / 提交节奏
+Steps 5–7 include migration of existing single-dish menus, ingredient scaling, shared-stock allocation, explicit review of uncertain conversions and repeatable shopping-list generation. Recipe quantities remain unchanged by planned portions. Purchased items enter the fridge only after confirming their actual quantity, storage and date.
 
-Current authorization: combine completed menu, pantry, typography, README and real screenshots into one commit/push at 2026-11-09 01:07 America/New_York. The owner explicitly confirmed this and canceled the separate 09:00 task. Do not use prior stage snapshots for this merged commit. Other future features are not included in that authorization.
+Validation includes automated model/persistence tests and English/Chinese browser checks at phone widths. README screenshots use the English interface with separate demo data and are displayed individually.
 
+## Scope
 
-- One coherent slice per commit, following an appropriate check.
-- During longer work, aim for a checkpoint after roughly 30–60 minutes when a coherent change is ready; do not wait merely to space out timestamps.
-- Push completed commits before handing off a development session.
-- Record what actually changed, what was checked and the next small step.
-- User-requested changes may reorder or reduce milestones.
+Keep data local before adding accounts or cloud sync. Stock matching does not guess weights for pieces or packs, convert volume to weight, infer safe food dates or mark a planned meal as eaten. Nutrition work will need sourced food data, preparation states and visible unknown quantities; see [the nutrition notes](NUTRITION.md).
 
-## Scope boundaries / 首版边界
-
-Local-first storage before account sync. No image recognition, autonomous recipe generation, nutrition diagnosis or automatic food-safety decisions in the initial scope. Cuisine tags describe the recipe's intended style and may use “inspired” where appropriate.
-
-Step 1 uses dependency-free HTML, CSS and JavaScript to keep the first language/layout milestone small. Future framework and backend changes should be justified by a feature. Visual direction: [near-white menu layout with minimal copy](DESIGN.md). Preserve the quantity and provenance requirements in the [nutrition plan](NUTRITION.md) when implementing recipe data.
+Visual direction: [DESIGN.md](DESIGN.md). Completed work and verification: [PROGRESS.md](PROGRESS.md).
