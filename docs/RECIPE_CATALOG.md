@@ -1,6 +1,6 @@
 # Prototype catalog / 原型现有菜谱
 
-Verified against `fridge-helper/src/data.js` on 2026-11-08. These are 12 curated demonstration entries in the separate prototype. This new repository currently contains documentation only; the table is a reference, not an implemented catalog or imported third-party dataset.
+Verified against `fridge-helper/src/data.js` on 2026-11-08. These are 12 curated demonstration entries in the separate prototype. This new repository currently has an interface shell only; the table is a reference, not an implemented catalog or imported third-party dataset.
 
 | 菜系 | 中文名称 | English title | Prototype time estimate |
 | --- | --- | --- | --- |

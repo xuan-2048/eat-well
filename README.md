@@ -6,9 +6,19 @@ A mobile-first, bilingual pantry-to-recipe PWA, developed one small, reviewable 
 
 ## Current status / 当前状态
 
-Planning milestone only. This repository does not yet contain a runnable app. The earlier `xuan-2048/fridge-helper` repository remains a separate working prototype; its implementation and Git history are not copied here.
+Milestone 1 is implemented: a warm, minimal mobile shell with Chinese/English switching, persistent language preference and home/pantry/shopping preview views. Ingredient tracking, recipe matching, shopping edits and nutrition remain planned. The earlier prototype remains separate; its implementation and Git history are not copied here.
 
-当前仅完成项目定义和开发计划，还没有可运行的应用。此前的 `fridge-helper` 仓库和本地预览保留，作为原型参考；此仓库从小步骤开始重新实现。
+已完成第 1 步：奶油白＋暖橙的手机首页框架、中英切换与语言保存。食材记录、菜谱推荐、购物编辑和营养分析尚未实现。此前的原型代码保留作参考；此仓库从小步骤重新实现。
+
+## Run / 启动
+
+Requires Python 3; Node.js is used for syntax checks. No package installation is required.
+
+```sh
+npm start
+```
+
+Open http://localhost:8011. Run `npm run check` for JavaScript syntax validation. This is a local preview, not an installed PWA or a deployed service.
 
 ## Product focus / 产品重点
 

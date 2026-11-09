@@ -5,7 +5,7 @@ Started: 2026-11-08 (America/New_York). Milestones describe scope, not a promise
 | Step | Small deliverable | Acceptance check | Status |
 | --- | --- | --- | --- |
 | 0 | Project definition, reference research, prototype catalog | Docs distinguish implemented features from plans | Done |
-| 1 | Minimal mobile app shell and Chinese/English switch | Both languages render at phone width; selection persists after reload | Planned |
+| 1 | Minimal mobile app shell and Chinese/English switch | Both languages render at phone width; selection persists after reload | Done |
 | 2 | Ingredient model and quick pantry entry | Add/edit/remove, alias handling, unknown input feedback and reload persistence | Planned |
 | 3 | First three structured recipes | Bilingual titles, ingredients, quantities, steps and cuisine; data validation | Planned |
 | 4 | Matching and cuisine filters | Available/missing ingredients explained; staples treated explicitly; deterministic tests | Planned |
