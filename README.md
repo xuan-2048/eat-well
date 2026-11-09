@@ -1,48 +1,82 @@
-# 好好吃饭 · Eat Well
+# Eat Well · 好好吃饭
 
-A mobile-first, bilingual pantry-to-recipe PWA, developed one small, reviewable milestone at a time.
+A small cooking app for saving recipes, planning meals, and keeping track of what is in the fridge. Built for mobile browsers, with Chinese and English interfaces.
 
-手机优先的中英双语做饭应用：记录现有食材，选择菜系，找到今晚能做的菜，并把缺少的食材加入购物清单。
+保存自己的菜谱，安排每天吃什么，记录冰箱里的食材。
 
-## Current status / 当前状态
+## Screenshots
 
-The personal recipe library is implemented locally: create/edit/delete, quantities and units, servings, instructions, optional compressed photos, independent wanted/cooked labels, cuisine filtering and ingredient/name search. Chinese/English UI is supported; user-written content stays in the language entered. Records are stored in this browser only.
+| Meal planning | Recipe details | Pantry entry |
+| --- | --- | --- |
+| <img src="docs/images/menu.jpg" width="230" alt="Today and tomorrow meal plans"> | <img src="docs/images/recipe.jpg" width="230" alt="Recipe ingredients and instructions"> | <img src="docs/images/pantry.jpg" width="230" alt="Pantry entry with ingredient recognition"> |
 
-本地已实现“我的菜谱”：新增、编辑、确认删除，结构化食材用量、单位、生熟状态、份数、做法、选填照片，想吃／做过标记、菜系筛选和搜索。界面支持中英文；用户自己输入的内容不会自动翻译。
+Screenshots from the local app. The recipe is a sample; the pantry form shows an unsaved example.
 
-Meal planning, pantry inventory, nutrition, cloud sync and PWA installation are not implemented yet. Optional sample data is added only by explicitly selecting “Add sample recipe”. Clearing browser data deletes local records. Do not use private/incognito browsing for records you want to keep. Photos are resized to at most 720px and stored as bounded JPEGs; a failed storage write keeps the form draft open.
+## Features
 
-## Run / 启动
+- **Recipes** — ingredients, quantities, servings, cooking steps and optional photos. Keep separate lists of dishes you want to cook and dishes you have made.
+- **Meal planning** — choose a recipe for today's or tomorrow's lunch and dinner. Replace dishes, adjust planned servings, or remove a meal.
+- **Pantry** — track quantities, storage locations and optional dates. Search common ingredients using Chinese or English names, including aliases such as 番茄 / 西红柿 / tomato.
+- **Local storage** — recipes, photos, menus and pantry entries stay in the browser and survive a refresh.
 
-Requires Python 3; Node.js is used for syntax checks. No package installation is required.
+## Run locally
+
+Requires Python 3 and Node.js 20+. No dependency installation is needed.
 
 ```sh
+git clone https://github.com/xuan-2048/eat-well.git
+cd eat-well
 npm start
 ```
 
-Open http://localhost:8011. Run `npm run check` for JavaScript syntax validation and `npm test` for recipe/persistence tests. This is a local preview, not an installed PWA or a deployed service.
+Open [localhost:8011](http://localhost:8011). Press `Ctrl+C` in the terminal to stop the server.
 
-## Product focus / 产品重点
+If the port is occupied:
 
-- Chinese/English interface, ingredient aliases and recipe instructions.
-- Cuisine selection with transparent ranking: what is available, what is missing, why this recipe appears.
-- Quick pantry entry and optional user-entered date reminders.
-- Missing ingredients → deduplicated shopping list.
-- Mobile layout, browser persistence, then installable/offline PWA behavior.
+```sh
+python3 -m http.server 8012 --bind 127.0.0.1
+```
 
-首版重点是中英食材同义词、菜系选择、可解释的匹配与轻量记录。面向自己做饭的学生，先把少量真实使用流程做好。
+## How it works
 
-## Development approach / 开发方式
+The app uses HTML, CSS and JavaScript ES modules. Python serves the static files locally. There is no application server or account system.
 
-See [the roadmap](docs/ROADMAP.md) and [design direction](docs/DESIGN.md).
+Recipes store ingredient amounts and units separately, along with the number of servings. Meal plans reference a recipe by ID and keep their own planned portions. Pantry entries are separate batches, so a bag and a weighed portion are not combined automatically.
 
-**Current owner instruction: local changes only. Do not commit or push until the owner explicitly approves after review.** This supersedes the earlier automatic milestone-commit approach. Completed local work and verification should still be documented.
+Photos are processed in the browser and saved as compressed JPEGs. Data is stored in `localStorage`; clearing site data removes the records. Different browsers, devices and ports have separate storage. Export and cloud sync are not available yet.
 
-**当前要求：先改本地供用户检查；用户明确确认后才能 commit、push。** 没有自动开发或定时提交任务。
+```text
+src/
+  app.js             UI and interactions
+  recipes.js         Recipe validation, filtering and storage
+  plans.js           Dates, meal assignments and planned servings
+  pantry.js          Inventory, date reminders and storage
+  foods.js           Common ingredient names and aliases
+  *copy.js           Chinese and English interface text
+  styles.css         Layout and typography
+tests/               Model, persistence and language tests
+```
 
-## References / 参考
+## Checks
 
-- [Prototype recipe catalog](docs/RECIPE_CATALOG.md): 12 example recipes in the separate prototype, not implemented here yet.
-- [Related projects](docs/RELATED_PROJECTS.md): research notes and product differentiation.
+```sh
+npm run check
+npm test
+```
 
-Dates are user-entered organization reminders, not food-safety determinations. Ingredient presence does not prove sufficient quantity. Recipe content and data provenance will be recorded as the catalog is implemented.
+Tests cover validation, persistence, filtering, ingredient aliases, date boundaries, meal replacement, missing recipes and storage errors. The interface is also checked at 320px and 390px phone widths.
+
+## Next
+
+- Plan more than one dish per meal and scale ingredients by servings.
+- Check planned meals against pantry stock and build a shopping list.
+- Add a weekly menu and cooking history.
+- Export and restore local data.
+- Estimate nutrition per recipe and serving.
+- Add offline support and installation to the home screen.
+
+Each meal currently holds one dish. Planned portions are separate from actual food intake. Entered dates are reminders, not a determination of food safety.
+
+## Design reference
+
+The menu layout was inspired by [Civa](https://xhslink.cn/o/4xtGwV55nr9). The logo, plate placeholders and page styling are drawn for this project.

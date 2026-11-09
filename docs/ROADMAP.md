@@ -7,20 +7,22 @@ Started: 2026-11-08 (America/New_York). Milestones describe scope, not a promise
 | 0 | Project definition, reference research, prototype catalog | Docs distinguish implemented features from plans | Done |
 | 1 | Minimal mobile app shell and Chinese/English switch | Both languages render at phone width; selection persists after reload | Done |
 | 2 | Personal recipe library: add/edit/delete and want-to-cook/cooked status | Persist bilingual-compatible dish records, cuisine, ingredient quantities, units and servings; handle unknown inputs | Done locally; awaiting review |
-| 3 | Today's/tomorrow's meal planning | Assign a saved dish to a meal, replace/remove it, and preserve planned date and servings | Planned |
-| 4 | Ingredient model and quick pantry entry | Add/edit/remove, alias handling, optional dates and reload persistence | Planned |
-| 5 | First three structured sample recipes and pantry matching | Valid bilingual recipe data; explain available/missing ingredients; deterministic ranking and cuisine filtering | Planned |
-| 6 | Expand catalog and date-aware sorting | Validate recipe fields, local date boundaries and incomplete inventory | Planned |
-| 7 | Shopping list | Missing ingredients added, duplicates merged, purchased items managed | Planned |
-| 8 | PWA shell and deployment | Manifest/icons, offline behavior, HTTPS preview, actual phone installation checks | Planned |
-| 9 | Nutrition estimates per recipe and serving | Traceable amounts, sources, serving calculations and explicit unknown data | Planned |
-| 10 | Meal intake and daily nutrition summary | Separate actual consumption from plans; do not treat unknown nutrients as zero | Planned |
+| 3 | Today's/tomorrow's meal planning | Assign a saved dish to a meal, replace/remove it, and preserve planned date and servings | Done locally; delayed commit/push authorized |
+| 4 | Ingredient model and quick pantry entry | Add/edit/remove, alias handling, optional dates and reload persistence | Done locally; 09:00 commit/push authorized |
+| 5 | Multiple dishes per meal and portion scaling | Add/remove individual dishes without replacing the whole meal; scale measured ingredients and preserve unknown amounts | Planned |
+| 6 | Pantry comparison and missing ingredients | Match aliases, compare compatible units and show uncertain conversions explicitly | Planned |
+| 7 | Shopping list from selected days | Aggregate needs, subtract usable known stock, deduplicate and keep purchased state | Planned |
+| 8 | Weekly menu and cooking history | Browse dates, copy a meal, and distinguish a plan from a confirmed cooking record | Planned |
+| 9 | Export and restore | Versioned JSON backup with validation and explicit merge/replace behavior | Planned |
+| 10 | Nutrition per recipe and serving | Source-backed quantities, consistent serving calculations and visible unknown data | Planned |
+| 11 | Actual meal intake | Record consumed portions separately from plans and aggregate daily nutrition | Planned |
+| 12 | Installable/offline PWA | Manifest/icons, HTTPS, cache upgrade and real phone installation checks | Planned |
 
 Priorities updated after reviewing the owner's Civa reference on 2026-11-08: recipe library and meal planning precede pantry matching. Today's UI remains a shell; the updated plan does not mean those features are implemented.
 
 ## Checkpoint policy / 提交节奏
 
-Current override: **do not commit or push without explicit owner approval after local review**. The earlier automatic checkpoint policy below applies only after authorization.
+Current authorization: combine completed menu, pantry, typography, README and real screenshots into one commit/push at 2026-11-09 01:07 America/New_York. The owner explicitly confirmed this and canceled the separate 09:00 task. Do not use prior stage snapshots for this merged commit. Other future features are not included in that authorization.
 
 
 - One coherent slice per commit, following an appropriate check.

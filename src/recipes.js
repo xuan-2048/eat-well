@@ -3,7 +3,7 @@ export const CUISINES=['chinese','italian','mexican','japanese','korean','everyd
 export const UNITS=['g','ml','piece','tbsp','tsp','toTaste'];
 export const STATES=['unspecified','raw','cooked'];
 const aliases={番茄:'tomato',西红柿:'tomato',tomato:'tomato',tomatoes:'tomato',鸡蛋:'egg',蛋:'egg',egg:'egg',eggs:'egg',大蒜:'garlic',蒜:'garlic',garlic:'garlic',米饭:'rice',rice:'rice'};
-export function ingredientKey(name){const key=name.normalize('NFKC').trim().toLowerCase().replace(/\s+/g,' ');return aliases[key]??`custom:${key}`;}
+export function ingredientKey(name){const key=name.normalize('NFKC').trim().toLowerCase().replace(/\s+/g,' ');return Object.hasOwn(aliases,key)?aliases[key]:`custom:${key}`;}
 const text=(value,max)=>typeof value==='string'&&value.trim().length>0&&value.length<=max;
 export function validRecipe(r){
   return Boolean(r && text(r.id,100) && text(r.name,100) && CUISINES.includes(r.cuisine)

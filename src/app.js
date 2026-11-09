@@ -1,4 +1,9 @@
 import {copy} from './copy.js';
+import {foods,recognizeFood,pantryName} from './foods.js';
+import {PANTRY_KEY,PANTRY_UNITS,LOCATIONS,foodIdentity,validPantryItem,loadPantry,savePantry,upsertPantry,daysToDate,dateStatus,filterPantry} from './pantry.js';
+import {pantryCopy} from './pantry-copy.js';
+import {PLAN_KEY,MEALS,localDay,followingDay,loadPlans,savePlans,assignMeal,removeMeal,resolveMeal,validPlan} from './plans.js';
+import {planCopy} from './plan-copy.js';
 import {recipeCopy} from './recipe-copy.js';
 import {CUISINES,UNITS,STATES,ingredientKey,validRecipe,loadRecipes,saveRecipes,filterRecipes} from './recipes.js';
 const app=document.getElementById('app');
@@ -7,6 +12,16 @@ const initialPage=location.hash.slice(1);
 let language='zh',page=['home','recipes','pantry'].includes(initialPage)?initialPage:'home',recipeTab='all',storageError=false;
 let cuisineFilter='all',searchQuery='',records=[],recipeLoadError=false;
 try{const result=loadRecipes(localStorage);records=result.recipes;recipeLoadError=result.error;}catch{recipeLoadError=true;}
+let plans=[],planLoadError=false;
+try{const loaded=loadPlans(localStorage);plans=loaded.plans;planLoadError=loaded.error;}catch{planLoadError=true;}
+let renderedDay=localDay(),plannerSlot=null,selectedRecipeId='',plannerQuery='';
+const planner=document.getElementById('meal-planner');
+const P=()=>planCopy[language];
+let pantryItems=[],pantryLoadError=false,pantryLocation='all',pantryDateFilter='all',pantryQuery='',pantryEditingId=null;
+try{const loaded=loadPantry(localStorage);pantryItems=loaded.items;pantryLoadError=loaded.error;}catch{pantryLoadError=true;}
+const pantryEditor=document.getElementById('pantry-editor');
+const pantryDelete=document.getElementById('pantry-delete');
+const F=()=>pantryCopy[language];
 const dialog=document.getElementById('recipe-dialog');
 const editor=document.getElementById('recipe-editor');
 const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -34,13 +49,13 @@ function render(){
     <main><div class="date-row"><span>${date}</span><small>${c.preview}</small></div>
       ${page==='home'?`
         <div class="quick-links"><button type="button" data-library="wanted"><span aria-hidden="true">♡</span> ${c.wanted}</button><button type="button" data-library="cooked"><span aria-hidden="true">✓</span> ${c.cooked}</button></div>
-        <section class="menu-section"><div class="section-heading"><h1>${c.today}</h1><button type="button" class="text-link" data-page="recipes">${c.browse} <span aria-hidden="true">↗</span></button></div>
-          <div class="tablecloth">${[c.lunch,c.dinner].map(meal=>`<div class="meal"><span class="meal-label">${meal}</span><div class="plate" role="img" aria-label="${c.plate}"><span aria-hidden="true">—</span></div><p>${c.noMeal}</p></div>`).join('')}</div>
-        </section>
-        <section class="menu-section tomorrow"><h2>${c.tomorrow}</h2><div class="tomorrow-empty"><div class="mini-plate" aria-hidden="true"></div><p>${c.noTomorrow}</p></div></section>`:
+        ${menuSection(localDay(),c.today)}
+        ${menuSection(followingDay(localDay()),c.tomorrow)}`:
       page==='recipes'?`
         ${libraryHTML()}`:
-      `<section class="library"><h1>${c.pantryTitle}</h1><div class="empty-state">${icon('pantry')}<h2>${c.noIngredients}</h2><p>${c.pantryHint}</p></div></section>`}
+      `${pantryHTML()}`}
+      ${pantryLoadError?`<p class="storage-error" role="alert">${F().loadError}</p>`:''}
+      ${planLoadError?`<p class="storage-error" role="alert">${P().loadError}</p>`:''}
       ${recipeLoadError?`<p class="storage-error" role="alert">${R().loadError}</p>`:''}
       ${storageError?`<p class="storage-error" role="status">${c.storageError}</p>`:''}
     </main>
@@ -192,3 +207,160 @@ document.addEventListener('submit',event=>{
   photoGeneration++;editor.close();page='recipes';recipeTab='all';cuisineFilter='all';searchQuery='';render();openDetails(recipe.id);toast(R().saved);
 });
 editor.addEventListener('cancel',event=>{event.preventDefault();closeEditor();});
+
+function menuSection(date,title){
+  const p=P(),c=copy[language];
+  return `<section class="menu-section live-menu"><div class="section-heading"><h${date===localDay()?'1':'2'}>${title}</h${date===localDay()?'1':'2'}><span class="menu-date">${date.slice(5).replace('-',' / ')}</span></div><div class="tablecloth">${MEALS.map(meal=>{
+    const entry=resolveMeal(plans,records,date,meal),recipe=entry?.recipe;
+    const label=`${title} · ${c[meal]} · ${recipe?recipe.name:entry?p.missing:p.arrange}`;
+    return `<div class="meal"><span class="meal-label">${c[meal]}</span><button type="button" class="plate plan-plate ${recipe?'has-recipe':''}" data-plan-date="${date}" data-plan-meal="${meal}" aria-label="${escapeHTML(label)}" ${planLoadError?'disabled':''}>${recipe?.photo?`<img src="${recipe.photo}" alt="">`:recipe?`<span class="plate-initial" aria-hidden="true">${escapeHTML(Array.from(recipe.name)[0])}</span>`:`<span aria-hidden="true">${entry?'!':'＋'}</span>`}</button><p class="meal-name ${entry&&!recipe?'missing-recipe':''}">${recipe?escapeHTML(recipe.name):entry?p.missing:c.noMeal}</p><small class="meal-portions">${entry?`${entry.plan.servings} ${p.servings}`:p.selectHint}</small></div>`;
+  }).join('')}</div></section>`;
+}
+function freshRecipes(){
+  try{const data=loadRecipes(localStorage);if(data.error)return false;records=data.recipes;recipeLoadError=false;return true;}catch{return false;}
+}
+function openPlanner(date,meal){
+  if(!MEALS.includes(meal))return;
+  const fresh=(()=>{try{return loadPlans(localStorage);}catch{return {error:true};}})();
+  if(fresh.error){planLoadError=true;render();toast(P().loadError);return;}
+  plans=fresh.plans;
+  if(!freshRecipes()){recipeLoadError=true;render();toast(R().loadError);return;}
+  const entry=resolveMeal(plans,records,date,meal),p=P(),c=copy[language];
+  plannerSlot={date,meal};selectedRecipeId=entry?.recipe?.id??'';plannerQuery='';
+  const title=`${date===localDay()?c.today:date===followingDay(localDay())?c.tomorrow:date} · ${c[meal]}`;
+  planner.innerHTML=`<form id="plan-form"><div class="dialog-header"><h2 id="planner-title">${title}</h2><button type="button" data-close-planner aria-label="${p.close}">×</button></div><p class="detail-meta">${date}</p>
+    ${entry&&!entry.recipe?`<p class="missing-plan-note">${p.missingNote}</p>`:''}
+    ${records.length?`<label for="planner-search">${p.choose}<input id="planner-search" type="search" maxlength="100" placeholder="${p.search}"></label><div id="planner-options">${plannerOptions()}</div><p id="planner-selection" class="form-note" role="status">${plannerSelection()}</p><div class="plan-portions"><label for="planned-servings">${p.planned}<input id="planned-servings" name="servings" type="number" inputmode="decimal" min="0.25" max="100" step="0.25" value="${entry?.plan.servings??1}" required></label><p class="form-note">${p.plannedNote}</p></div>`:`<div class="empty-planner">${icon('recipes')}<p>${p.noRecipes}</p><button type="button" class="primary" data-planner-add>${p.addRecipe}</button></div>`}
+    <p class="form-error" role="alert" id="plan-error"></p><div class="plan-form-actions">${entry?`<button type="button" class="danger" data-remove-plan>${p.remove}</button>`:''}<div><button type="button" class="secondary" data-close-planner>${p.cancel}</button>${records.length?`<button type="submit" class="primary">${p.save}</button>`:''}</div></div></form>`;
+  planner.setAttribute('aria-labelledby','planner-title');planner.showModal();
+}
+function plannerSelection(){const recipe=records.find(r=>r.id===selectedRecipeId);return recipe?`${P().selected}: ${escapeHTML(recipe.name)}`:P().notSelected;}
+function plannerOptions(){
+  const p=P(),visible=filterRecipes(records,{query:plannerQuery});
+  if(!visible.length)return `<p class="planner-no-match">${p.noMatch}<small>${p.searchHint}</small></p>`;
+  return `<fieldset class="planner-choices"><legend class="sr-only">${p.choose}</legend>${visible.map(recipe=>`<label class="planner-choice"><input type="radio" name="recipeId" value="${escapeHTML(recipe.id)}" ${selectedRecipeId===recipe.id?'checked':''}><span class="choice-thumbnail">${recipe.photo?`<img src="${recipe.photo}" alt="">`:`<span aria-hidden="true">${escapeHTML(Array.from(recipe.name)[0])}</span>`}</span><span class="choice-name"><strong>${escapeHTML(recipe.name)}</strong><small>${R().cuisines[recipe.cuisine]} · ${p.base} ${recipe.servings} ${p.servings}</small></span></label>`).join('')}</fieldset>`;
+}
+function applyPlanChange(operation){
+  // Merge into the most recent stored collection so editing one slot doesn't
+  // overwrite changes another open tab made to the other slots.
+  const fresh=loadPlans(localStorage);
+  if(fresh.error)throw new Error(P().loadError);
+  const next=operation(fresh.plans);
+  savePlans(localStorage,next);plans=next;planLoadError=false;
+}
+document.addEventListener('click',event=>{
+  const target=event.target.closest('button');if(!target)return;
+  if(target.dataset.planDate)openPlanner(target.dataset.planDate,target.dataset.planMeal);
+  else if(target.hasAttribute('data-close-planner'))planner.close();
+  else if(target.hasAttribute('data-planner-add')){
+    planner.close();page='recipes';recipeTab='all';render();openEditor();
+  }else if(target.hasAttribute('data-remove-plan')){
+    try{applyPlanChange(current=>removeMeal(current,plannerSlot.date,plannerSlot.meal));}
+    catch{planner.querySelector('#plan-error').textContent=P().saveError;return;}
+    planner.close();render();toast(P().removed);
+  }
+});
+document.addEventListener('input',event=>{
+  if(event.target.id==='planner-search'){
+    plannerQuery=event.target.value;planner.querySelector('#planner-options').innerHTML=plannerOptions();
+  }
+});
+document.addEventListener('change',event=>{
+  if(event.target.name==='recipeId'){selectedRecipeId=event.target.value;planner.querySelector('#planner-selection').innerHTML=plannerSelection();}
+});
+document.addEventListener('submit',event=>{
+  if(event.target.id!=='plan-form')return;event.preventDefault();
+  const error=planner.querySelector('#plan-error');
+  if(!freshRecipes()){error.textContent=R().loadError;return;}
+  if(!records.some(recipe=>recipe.id===selectedRecipeId)){error.textContent=selectedRecipeId?P().recipeChanged:P().invalid;return;}
+  const plan={...plannerSlot,recipeId:selectedRecipeId,servings:Number(new FormData(event.target).get('servings'))};
+  if(!validPlan(plan)){error.textContent=P().invalid;return;}
+  try{applyPlanChange(current=>assignMeal(current,plan,records));}
+  catch{error.textContent=P().saveError;return;}
+  planner.close();render();toast(P().saved);
+});
+function refreshLocalData(){
+  try{
+    const inventory=loadPantry(localStorage);pantryItems=inventory.items;pantryLoadError=inventory.error;
+    const latest=loadPlans(localStorage);plans=latest.plans;planLoadError=latest.error;
+    const latestRecipes=loadRecipes(localStorage);records=latestRecipes.recipes;recipeLoadError=latestRecipes.error;
+  }catch{planLoadError=true;recipeLoadError=true;}
+  renderedDay=localDay();render();
+}
+window.addEventListener('storage',event=>{
+  if(event.key===PLAN_KEY||event.key==='eat-well-recipes-v1'||event.key===PANTRY_KEY||event.key===null)refreshLocalData();
+});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open)refreshLocalData();});
+setInterval(()=>{if(localDay()!==renderedDay&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open)refreshLocalData();},30000);
+
+function pantryAmount(item){const singular={piece:'pc',pack:'pack',bottle:'bottle'};const unit=language==='en'&&item.amount===1?(singular[item.unit]??F().units[item.unit]):F().units[item.unit];return `${item.amount} ${unit}`;}
+function pantryDateLabel(item){
+  const f=F(),status=dateStatus(item.date),days=daysToDate(item.date);
+  return status==='none'?f.noDate:status==='past'?`${f.past} · ${item.date}`:status==='today'?f.dateToday:status==='soon'?f.dateSoon(days):f.dateLater(item.date);
+}
+function pantryHTML(){
+  const f=F(),near=pantryItems.filter(i=>['soon','today'].includes(dateStatus(i.date))).length,past=pantryItems.filter(i=>dateStatus(i.date)==='past').length;
+  return `<section class="library pantry-library"><div class="section-heading"><h1>${f.title}</h1><button type="button" class="primary" data-pantry-add ${pantryLoadError?'disabled':''}>＋ ${f.add}</button></div>
+    <div class="pantry-date-filters" role="group" aria-label="${f.allDates}">${[['all',f.allDates,pantryItems.length],['soon',f.near,near],['past',f.past,past],['none',f.noDate,pantryItems.filter(i=>!i.date).length]].map(([id,label,count])=>`<button type="button" data-pantry-date="${id}" aria-pressed="${pantryDateFilter===id}">${label} <small>${count}</small></button>`).join('')}</div>
+    <div class="library-filters"><label class="sr-only" for="pantry-search">${f.search}</label><input id="pantry-search" type="search" value="${escapeHTML(pantryQuery)}" maxlength="80" placeholder="${f.search}"><label class="sr-only" for="pantry-location">${f.location}</label><select id="pantry-location"><option value="all">${f.all}</option>${LOCATIONS.map(id=>`<option value="${id}" ${pantryLocation===id?'selected':''}>${f.locations[id]}</option>`).join('')}</select></div>
+    <div id="pantry-results">${pantryResultsHTML()}</div><p class="local-note">${f.local}</p></section>`;
+}
+function pantryResultsHTML(){
+  const f=F(),items=filterPantry(pantryItems,{location:pantryLocation,dateFilter:pantryDateFilter,query:pantryQuery});
+  if(!items.length)return `<div class="empty-state">${icon('pantry')}<h2>${pantryItems.length?f.noMatch:f.none}</h2><p>${pantryItems.length?f.noMatchHint:f.emptyHint}</p></div>`;
+  return `<div class="pantry-entries">${items.map(item=>{const name=pantryName(item,language);return `<article class="pantry-entry"><div class="pantry-initial" aria-hidden="true">${escapeHTML(Array.from(name)[0])}</div><div class="pantry-entry-info"><h2>${escapeHTML(name)}</h2><p>${pantryAmount(item)} · ${f.locations[item.location]}</p><small class="date-label date-${dateStatus(item.date)}">${escapeHTML(pantryDateLabel(item))}</small></div><div class="pantry-entry-actions"><button type="button" data-pantry-edit="${escapeHTML(item.id)}" aria-label="${f.edit} ${escapeHTML(name)}">${f.edit}</button><button type="button" class="remove-entry" data-pantry-delete="${escapeHTML(item.id)}" aria-label="${f.delete} ${escapeHTML(name)}">${f.delete}</button></div></article>`;}).join('')}</div>`;
+}
+function recognitionHTML(name){
+  const food=recognizeFood(name);return food?`${F().recognized}：${food[language]} <span>${food[language==='zh'?'en':'zh']}</span>`:name.trim()?F().custom:'';
+}
+function freshPantry(){const result=loadPantry(localStorage);if(result.error)throw new Error('read');return result.items;}
+function openPantryEditor(id){
+  try{pantryItems=freshPantry();pantryLoadError=false;}catch{pantryLoadError=true;render();toast(F().loadError);return;}
+  const item=pantryItems.find(i=>i.id===id),f=F();
+  pantryEditingId=item?.id??null;
+  pantryEditor.innerHTML=`<form id="pantry-form"><div class="dialog-header"><h2 id="pantry-editor-title">${item?f.edit:f.add}</h2><button type="button" data-pantry-close aria-label="${f.close}">×</button></div>
+    <label for="pantry-name">${f.name}<input id="pantry-name" name="name" list="food-suggestions" value="${escapeHTML(item?.name??'')}" maxlength="80" placeholder="${f.nameHint}" required aria-describedby="food-recognition"></label><datalist id="food-suggestions">${foods.map(food=>`<option value="${food[language]}">${food[language==='zh'?'en':'zh']}</option>`).join('')}</datalist><p class="food-recognition" id="food-recognition" role="status">${recognitionHTML(item?.name??'')}</p>
+    <div class="form-pair pantry-amount"><label for="pantry-amount">${f.amount}<input id="pantry-amount" name="amount" type="number" inputmode="decimal" min="0.000001" max="100000" step="any" value="${item?.amount??1}" required></label><label for="pantry-unit">${f.unit}<select id="pantry-unit" name="unit">${PANTRY_UNITS.map(id=>`<option value="${id}" ${(item?.unit??'g')===id?'selected':''}>${f.units[id]}</option>`).join('')}</select></label></div>
+    <label for="pantry-storage">${f.location}<select id="pantry-storage" name="location">${LOCATIONS.map(id=>`<option value="${id}" ${(item?.location??'fridge')===id?'selected':''}>${f.locations[id]}</option>`).join('')}</select></label>
+    <label for="pantry-date">${f.date}<input id="pantry-date" name="date" type="date" min="1000-01-01" max="9999-12-31" value="${item?.date??''}" aria-describedby="pantry-date-note"></label><p class="form-note" id="pantry-date-note">${f.dateHint}</p><p class="form-note pantry-separate">${f.separate}</p><p class="form-error" id="pantry-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" data-pantry-close>${f.cancel}</button><button type="submit" class="primary">${f.save}</button></div></form>`;
+  pantryEditor.setAttribute('aria-labelledby','pantry-editor-title');pantryEditor.showModal();
+}
+function openPantryDelete(id){
+  const item=pantryItems.find(i=>i.id===id);if(!item)return;const f=F();
+  pantryDelete.innerHTML=`<h2 id="pantry-delete-title">${f.removeTitle}</h2><p class="delete-name">${escapeHTML(pantryName(item,language))} · ${pantryAmount(item)}</p><p class="form-note">${f.removeBody}</p><p id="pantry-delete-error" class="form-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" data-pantry-delete-cancel>${f.cancel}</button><button type="button" class="danger solid" data-pantry-delete-confirm="${escapeHTML(id)}">${f.delete}</button></div>`;
+  pantryDelete.setAttribute('aria-labelledby','pantry-delete-title');pantryDelete.showModal();
+}
+document.addEventListener('click',event=>{
+  const target=event.target.closest('button');if(!target)return;
+  if(target.hasAttribute('data-pantry-add'))openPantryEditor();
+  else if(target.dataset.pantryEdit)openPantryEditor(target.dataset.pantryEdit);
+  else if(target.dataset.pantryDelete)openPantryDelete(target.dataset.pantryDelete);
+  else if(target.hasAttribute('data-pantry-close'))pantryEditor.close();
+  else if(target.hasAttribute('data-pantry-delete-cancel'))pantryDelete.close();
+  else if(target.dataset.pantryDate){pantryDateFilter=target.dataset.pantryDate;render();document.querySelector(`[data-pantry-date="${pantryDateFilter}"]`).focus();}
+  else if(target.dataset.pantryDeleteConfirm){
+    try{const next=freshPantry().filter(i=>i.id!==target.dataset.pantryDeleteConfirm);savePantry(localStorage,next);pantryItems=next;}
+    catch{pantryDelete.querySelector('#pantry-delete-error').textContent=F().saveError;return;}
+    pantryDelete.close();render();toast(F().removed);
+  }
+});
+document.addEventListener('input',event=>{
+  if(event.target.id==='pantry-search'){pantryQuery=event.target.value;document.getElementById('pantry-results').innerHTML=pantryResultsHTML();}
+  if(event.target.id==='pantry-name')pantryEditor.querySelector('#food-recognition').innerHTML=recognitionHTML(event.target.value);
+});
+document.addEventListener('change',event=>{
+  if(event.target.id==='pantry-location'){pantryLocation=event.target.value;document.getElementById('pantry-results').innerHTML=pantryResultsHTML();}
+});
+document.addEventListener('submit',event=>{
+  if(event.target.id!=='pantry-form')return;event.preventDefault();
+  const form=new FormData(event.target),name=form.get('name').trim(),now=new Date().toISOString(),error=pantryEditor.querySelector('#pantry-error');
+  let fresh;
+  try{fresh=freshPantry();}catch{error.textContent=F().loadError;return;}
+  const old=fresh.find(i=>i.id===pantryEditingId);
+  if(pantryEditingId&&!old){error.textContent=F().changed;return;}
+  const item={id:old?.id??uid(),name,...foodIdentity(name),amount:Number(form.get('amount')),unit:form.get('unit'),location:form.get('location'),date:form.get('date'),createdAt:old?.createdAt??now,updatedAt:now};
+  if(!validPantryItem(item)){error.textContent=F().invalid;return;}
+  try{const next=upsertPantry(fresh,item,{editing:Boolean(pantryEditingId)});savePantry(localStorage,next);pantryItems=next;pantryLoadError=false;}
+  catch{error.textContent=F().saveError;return;}
+  pantryEditor.close();pantryQuery='';pantryLocation='all';pantryDateFilter='all';render();toast(F().saved);
+});
