@@ -51,3 +51,48 @@ export function scaleIngredients(recipe,servings){
   if(!Number.isFinite(servings)||servings<=0||!Number.isFinite(recipe.servings)||recipe.servings<=0)throw new Error('Invalid servings');
   return recipe.ingredients.map(i=>({...i,amount:i.amount===null?null:Math.round(i.amount*servings/recipe.servings*1e6)/1e6}));
 }
+
+export function shiftDay(day,offset){
+  if(!validDay(day)||!Number.isInteger(offset))throw new Error('Invalid date');
+  const [y,m,d]=day.split('-').map(Number);
+  const result=new Date(Date.UTC(y,m-1,d+offset)).toISOString().slice(0,10);
+  if(!validDay(result))throw new Error('Invalid date');
+  return result;
+}
+export function weekDays(day=localDay()){
+  if(!validDay(day))throw new Error('Invalid date');
+  const weekday=new Date(`${day}T12:00:00Z`).getUTCDay();
+  const monday=shiftDay(day,-((weekday+6)%7));
+  return Array.from({length:7},(_,i)=>shiftDay(monday,i));
+}
+export function dateRange(start,end,maxDays=31){
+  if(!validDay(start)||!validDay(end)||start>end||!Number.isInteger(maxDays)||maxDays<1)throw new Error('Invalid date range');
+  const dates=[start];
+  while(dates.at(-1)!==end){
+    if(dates.length>=maxDays)throw new Error('Invalid date range');
+    dates.push(shiftDay(dates.at(-1),1));
+  }
+  return dates;
+}
+export function mealCopyPreview(plans,source,target,recipes){
+  if(!validCollection(plans)||![source,target].every(s=>s&&validDay(s.date)&&MEALS.includes(s.meal)))throw new Error('Invalid meal');
+  if(source.date===target.date&&source.meal===target.meal)throw new Error('Same meal');
+  const dishes=plans.filter(p=>p.date===source.date&&p.meal===source.meal);
+  if(!dishes.length)throw new Error('Empty source');
+  const existing=plans.filter(p=>p.date===target.date&&p.meal===target.meal);
+  const missing=dishes.filter(p=>!recipes.some(r=>r.id===p.recipeId));
+  const skipped=dishes.filter(p=>existing.some(e=>e.recipeId===p.recipeId));
+  const added=dishes.filter(p=>!skipped.includes(p)&&!missing.includes(p));
+  return {dishes,existing,missing,skipped,added};
+}
+export function copyMeal(plans,source,target,recipes,idFactory){
+  const preview=mealCopyPreview(plans,source,target,recipes);
+  if(preview.missing.length)throw new Error('Missing recipe');
+  let result=[...plans];
+  for(const dish of preview.added){
+    const id=idFactory();
+    if(result.some(p=>p.id===id))throw new Error('Duplicate ID');
+    result=assignMeal(result,{...dish,...target,id},recipes);
+  }
+  return {plans:result,added:preview.added.length,skipped:preview.skipped.length};
+}

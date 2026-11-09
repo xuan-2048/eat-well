@@ -1,11 +1,12 @@
 import {copy} from './copy.js';
+import {weekCopy} from './week-copy.js';
 import {buildShortages} from './shortages.js';
 import {SHOPPING_KEY,SHOPPING_UNITS,loadShopping,saveShopping,addManualShopping,shoppingFromShortages,receiveShopping} from './shopping.js';
 import {workflowCopy} from './workflow-copy.js';
 import {foods,recognizeFood,pantryName} from './foods.js';
 import {PANTRY_KEY,PANTRY_UNITS,LOCATIONS,foodIdentity,validPantryItem,loadPantry,savePantry,upsertPantry,daysToDate,dateStatus,filterPantry} from './pantry.js';
 import {pantryCopy} from './pantry-copy.js';
-import {PLAN_KEY,MEALS,localDay,followingDay,loadPlans,savePlans,assignMeal,removeMeal,resolveMeal,resolveMeals,scaleIngredients,validPlan} from './plans.js';
+import {PLAN_KEY,MEALS,localDay,followingDay,loadPlans,savePlans,assignMeal,removeMeal,resolveMeals,scaleIngredients,validPlan,shiftDay,weekDays,dateRange,mealCopyPreview,copyMeal} from './plans.js';
 import {planCopy} from './plan-copy.js';
 import {recipeCopy} from './recipe-copy.js';
 import {CUISINES,UNITS,STATES,ingredientKey,validRecipe,loadRecipes,saveRecipes,filterRecipes} from './recipes.js';
@@ -20,6 +21,9 @@ try{const loaded=loadPlans(localStorage);plans=loaded.plans;planLoadError=loaded
 let renderedDay=localDay(),plannerSlot=null,selectedRecipeId='',plannerQuery='';
 const planner=document.getElementById('meal-planner');
 const P=()=>planCopy[language];
+const V=()=>weekCopy[language];
+let menuView='daily',selectedMenuDay=localDay(),weekAnchor=localDay(),rangeStart=localDay(),rangeEnd=followingDay(localDay()),copySource=null,copySignature=null;
+const copyDialog=document.getElementById('meal-copy');
 let pantryItems=[],pantryLoadError=false,pantryLocation='all',pantryDateFilter='all',pantryQuery='',pantryEditingId=null;
 try{const loaded=loadPantry(localStorage);pantryItems=loaded.items;pantryLoadError=loaded.error;}catch{pantryLoadError=true;}
 const pantryEditor=document.getElementById('pantry-editor');
@@ -55,10 +59,7 @@ function render(){
   const nav=[['home',c.home],['recipes',c.recipes],['pantry',c.pantry],['shopping',W().shopping]];
   app.innerHTML=`<div class="shell"><header><a class="brand" href="#home" data-page="home"><img src="./mark.svg?v=2" width="30" height="30" alt=""><span>${c.title}</span></a><button class="language" type="button" data-language aria-label="${c.switchLabel}">${c.switchText}</button></header>
     <main><div class="date-row"><span>${date}</span><small>${c.preview}</small></div>
-      ${page==='home'?`
-        <div class="quick-links"><button type="button" data-library="wanted"><span aria-hidden="true">♡</span> ${c.wanted}</button><button type="button" data-library="cooked"><span aria-hidden="true">✓</span> ${c.cooked}</button></div>
-        ${menuSection(localDay(),c.today)}
-        ${menuSection(followingDay(localDay()),c.tomorrow)}`:
+      ${page==='home'?homeHTML():
       page==='recipes'?`
         ${libraryHTML()}`:
       page==='pantry'?`${pantryHTML()}`:`${shoppingHTML()}`}
@@ -217,12 +218,12 @@ document.addEventListener('submit',event=>{
 });
 editor.addEventListener('cancel',event=>{event.preventDefault();closeEditor();});
 
-function menuSection(date,title){
+function menuSection(date,title,primary=date===localDay()){
   const p=P(),c=copy[language];
-  return `<section class="menu-section live-menu"><div class="section-heading"><h${date===localDay()?'1':'2'}>${title}</h${date===localDay()?'1':'2'}><span class="menu-date">${date.slice(5).replace('-',' / ')}</span></div><div class="tablecloth multi-table">${MEALS.map(meal=>{
+  return `<section class="menu-section live-menu"><div class="section-heading"><h${primary?'1':'2'}>${title}</h${primary?'1':'2'}><span class="menu-date">${date.slice(5).replace('-',' / ')}</span></div><div class="tablecloth multi-table">${MEALS.map(meal=>{
     const entries=resolveMeals(plans,records,date,meal);
-    return `<section class="meal"><h3 class="meal-label">${c[meal]}</h3><div class="meal-dishes">${entries.map(({plan,recipe})=>`<div class="planned-dish"><button type="button" class="plate plan-plate ${recipe?'has-recipe':''}" data-plan-date="${date}" data-plan-meal="${meal}" data-dish-id="${escapeHTML(plan.id)}" aria-label="${escapeHTML(`${title} · ${c[meal]} · ${recipe?.name??p.missing}`)}" ${planLoadError?'disabled':''}>${recipe?.photo?`<img src="${recipe.photo}" alt="">`:recipe?`<span class="plate-initial" aria-hidden="true">${escapeHTML(Array.from(recipe.name)[0])}</span>`:`<span aria-hidden="true">!</span>`}</button><p class="meal-name ${!recipe?'missing-recipe':''}">${escapeHTML(recipe?.name??p.missing)}</p><small class="meal-portions">${plan.servings} ${p.servings}</small></div>`).join('')}</div><button type="button" class="add-dish" data-plan-date="${date}" data-plan-meal="${meal}" aria-label="${escapeHTML(`${title} · ${c[meal]} · ${W().addDish}`)}" ${planLoadError?'disabled':''}>＋ ${W().addDish}</button></section>`;
-  }).join('')}</div></section>${date===followingDay(localDay())?`<button type="button" class="secondary check-home" data-open-check>${W().check} ↗</button>`:''}`;
+    return `<section class="meal"><h3 class="meal-label">${c[meal]}</h3><div class="meal-dishes">${entries.map(({plan,recipe})=>`<div class="planned-dish"><button type="button" class="plate plan-plate ${recipe?'has-recipe':''}" data-plan-date="${date}" data-plan-meal="${meal}" data-dish-id="${escapeHTML(plan.id)}" aria-label="${escapeHTML(`${title} · ${c[meal]} · ${recipe?.name??p.missing}`)}" ${planLoadError?'disabled':''}>${recipe?.photo?`<img src="${recipe.photo}" alt="">`:recipe?`<span class="plate-initial" aria-hidden="true">${escapeHTML(Array.from(recipe.name)[0])}</span>`:`<span aria-hidden="true">!</span>`}</button><p class="meal-name ${!recipe?'missing-recipe':''}">${escapeHTML(recipe?.name??p.missing)}</p><small class="meal-portions">${plan.servings} ${p.servings}</small></div>`).join('')}</div><button type="button" class="add-dish" data-plan-date="${date}" data-plan-meal="${meal}" aria-label="${escapeHTML(`${title} · ${c[meal]} · ${W().addDish}`)}" ${planLoadError?'disabled':''}>＋ ${W().addDish}</button>${entries.length?`<button type="button" class="copy-meal" data-copy-date="${date}" data-copy-meal="${meal}" aria-label="${escapeHTML(`${title} · ${c[meal]} · ${V().copy}`)}" ${planLoadError?'disabled':''}>${V().copy} ↗</button>`:''}</section>`;
+  }).join('')}</div></section>`;
 }
 function freshRecipes(){try{const data=loadRecipes(localStorage);if(data.error)return false;records=data.recipes;recipeLoadError=false;return true;}catch{return false;}}
 function openPlanner(date,meal,id){
@@ -280,8 +281,8 @@ function refreshLocalData(){
 window.addEventListener('storage',event=>{
   if(event.key===PLAN_KEY||event.key==='eat-well-recipes-v1'||event.key===PANTRY_KEY||event.key===SHOPPING_KEY||event.key===null)refreshLocalData();
 });
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open&&!workflowDialog.open)refreshLocalData();});
-setInterval(()=>{if(localDay()!==renderedDay&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open&&!workflowDialog.open)refreshLocalData();},30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open&&!workflowDialog.open&&!copyDialog.open)refreshLocalData();});
+setInterval(()=>{if(localDay()!==renderedDay&&!editor.open&&!dialog.open&&!planner.open&&!pantryEditor.open&&!pantryDelete.open&&!workflowDialog.open&&!copyDialog.open)refreshLocalData();},30000);
 
 function pantryAmount(item){const singular={piece:'pc',pack:'pack',bottle:'bottle'};const unit=language==='en'&&item.amount===1?(singular[item.unit]??F().units[item.unit]):F().units[item.unit];return `${item.amount} ${unit}`;}
 function pantryDateLabel(item){
@@ -356,12 +357,13 @@ document.addEventListener('submit',event=>{
   pantryEditor.close();pantryQuery='';pantryLocation='all';pantryDateFilter='all';render();toast(F().saved);
 });
 
-function scopeDates(){const today=localDay(),tomorrow=followingDay(today);return checkScope==='both'?[today,tomorrow]:[checkScope==='tomorrow'?tomorrow:today];}
+function scopeDates(){const today=localDay(),tomorrow=followingDay(today);return checkScope==='range'?dateRange(rangeStart,rangeEnd):checkScope==='week'?weekDays(today):checkScope==='both'?[today,tomorrow]:[checkScope==='tomorrow'?tomorrow:today];}
 function reportNow(){
   try{
     const p=loadPlans(localStorage),r=loadRecipes(localStorage),i=loadPantry(localStorage);
     if(p.error||r.error||i.error)throw new Error('Unreadable');
-    return {...buildShortages(p.plans,r.recipes,i.items,scopeDates()),hasPlans:p.plans.some(item=>scopeDates().includes(item.date)),error:false};
+    const dates=scopeDates();
+    return {...buildShortages(p.plans,r.recipes,i.items,dates),hasPlans:p.plans.some(item=>dates.includes(item.date)),dates,error:false};
   }catch{return {rows:[],warnings:[],hasPlans:false,error:true};}
 }
 function quantityText(amount,unit){if(unit==='toTaste')return amount===null?R().units.toTaste:'—';if(amount===null)return unit==='toTaste'?R().units.toTaste:W().unknown;return `${new Intl.NumberFormat(language==='zh'?'zh-CN':'en-US',{maximumFractionDigits:6}).format(amount)} ${R().units[unit]??F().units[unit]??unit}`;}
@@ -370,13 +372,13 @@ function shoppingHTML(){
   const w=W();return `<section class="library workflow"><div class="section-heading"><h1>${w.shopping}</h1><button type="button" class="primary" data-shopping-add>＋ ${w.add}</button></div><div class="recipe-tabs" role="group" aria-label="${w.shopping}">${['list','check'].map(id=>`<button type="button" data-shopping-view="${id}" aria-pressed="${shoppingView===id}">${w[id]}</button>`).join('')}</div>${shoppingView==='check'?checkHTML():shoppingListHTML()}<p class="local-note">${w.local}</p></section>`;
 }
 function checkHTML(){
-  const w=W(),report=reportNow();
-  return `<div class="scope-buttons" role="group" aria-label="${w.check}">${['today','tomorrow','both'].map(id=>`<button type="button" class="secondary" data-check-scope="${id}" aria-pressed="${checkScope===id}">${w[id]}</button>`).join('')}</div><p class="form-note">${w.compareNote} ${w.dateNote}</p>
-    ${report.error?`<p class="form-error" role="alert">${w.loadError}</p>`:report.hasPlans?`${report.warnings.length?`<p class="missing-plan-note">${w.missingRecipe}</p>`:''}<div class="shortage-rows">${report.rows.map((row,index)=>`<article class="shortage-row"><div class="section-heading"><h2>${escapeHTML(foodLabel(row.name))}</h2><span class="shortage-status ${row.status}">${w[row.status]}</span></div><p class="requirement-state">${R().states[row.state]}</p><dl class="quantity-grid"><div><dt>${w.need}</dt><dd>${quantityText(row.required,row.unit)}</dd></div><div><dt>${w.have}</dt><dd>${quantityText(row.available,row.unit)}</dd></div><div><dt>${w.missing}</dt><dd>${quantityText(row.missing,row.unit)}</dd></div></dl>${row.status==='review'?`<p class="form-note">${row.reasons.map(reason=>w.reason[reason]).join(' ')}</p><button type="button" class="text-link" data-review-purchase="${index}">${w.reviewPurchase} ↗</button>`:''}</article>`).join('')}</div><p class="form-note">${w.reviewNote}</p><button type="button" class="primary full" data-generate-shopping ${report.error?'disabled':''}>${w.generate}</button><p class="form-note generate-note">${w.replaceNote}</p>`:`<div class="empty-state"><h2>${w.emptyPlan}</h2></div><button type="button" class="primary full" data-generate-shopping>${w.generate}</button><p class="form-note generate-note">${w.replaceNote}</p>`}`;
+  const w=W(),validRange=checkScope!=='range'||validSelectedRange(),report=validRange?reportNow():{rows:[],warnings:[],hasPlans:false,error:false};
+  return `${scopeHTML()}${!validRange?`<p class="form-error" role="alert">${V().rangeError}</p>`:`<p class="selected-dates">${V().dates}: ${dateSpan(report.dates??scopeDates())}</p><p class="form-note">${w.compareNote} ${w.dateNote}</p>`}
+    ${!validRange?'':report.error?`<p class="form-error" role="alert">${w.loadError}</p>`:report.hasPlans?`${report.warnings.length?`<p class="missing-plan-note">${w.missingRecipe}</p>`:''}<div class="shortage-rows">${report.rows.map((row,index)=>`<article class="shortage-row"><div class="section-heading"><h2>${escapeHTML(foodLabel(row.name))}</h2><span class="shortage-status ${row.status}">${w[row.status]}</span></div><p class="requirement-state">${R().states[row.state]}</p><dl class="quantity-grid"><div><dt>${w.need}</dt><dd>${quantityText(row.required,row.unit)}</dd></div><div><dt>${w.have}</dt><dd>${quantityText(row.available,row.unit)}</dd></div><div><dt>${w.missing}</dt><dd>${quantityText(row.missing,row.unit)}</dd></div></dl>${row.status==='review'?`<p class="form-note">${row.reasons.map(reason=>w.reason[reason]).join(' ')}</p><button type="button" class="text-link" data-review-purchase="${index}">${w.reviewPurchase} ↗</button>`:''}</article>`).join('')}</div><p class="form-note">${w.reviewNote}</p><button type="button" class="primary full" data-generate-shopping ${report.error?'disabled':''}>${w.generate}</button><p class="form-note generate-note">${w.replaceNote}</p>`:`<div class="empty-state"><h2>${w.emptyPlan}</h2></div><button type="button" class="primary full" data-generate-shopping>${w.generate}</button><p class="form-note generate-note">${w.replaceNote}</p>`}`;
 }
 function shoppingListHTML(){
   const w=W(),items=shoppingItems.filter(i=>shoppingTab==='received'?i.received:shoppingTab==='bought'?i.bought&&!i.received:!i.bought);
-  return `<div class="scope-buttons shopping-groups" role="group" aria-label="${w.list}">${['pending','bought','received'].map(tab=>`<button type="button" class="secondary" data-shopping-tab="${tab}" aria-pressed="${shoppingTab===tab}">${w[tab]} <small>${shoppingItems.filter(i=>tab==='received'?i.received:tab==='bought'?i.bought&&!i.received:!i.bought).length}</small></button>`).join('')}</div>${items.length?`<div class="shopping-entries">${items.map(item=>{const shown=item.received&&item.receipt?{...item,...item.receipt}:item;return `<article class="shopping-entry"><div class="shopping-entry-main">${!item.received?`<label class="purchase-check"><input type="checkbox" data-shopping-bought="${escapeHTML(item.id)}" ${item.bought?'checked':''} aria-label="${w.bought} ${escapeHTML(foodLabel(item.name))}"></label>`:`<span class="received-tick" aria-hidden="true">✓</span>`}<div><h2>${escapeHTML(foodLabel(shown.name))}</h2><p>${quantityText(shown.amount,shown.unit)} · ${R().states[shown.state]}</p><small>${item.source==='menu'?w.sourceMenu:w.sourceManual}</small></div></div><div class="shopping-entry-actions">${item.bought&&!item.received?`<button type="button" class="primary" data-receive-shopping="${escapeHTML(item.id)}">${w.receive}</button>`:''}<button type="button" class="text-link remove-shopping" data-shopping-remove="${escapeHTML(item.id)}">${w.remove}</button></div></article>`;}).join('')}</div>`:`<div class="empty-state">${icon('shopping')}<h2>${shoppingItems.length?w.noGroup:w.noItems}</h2></div>`}`;
+  return `<div class="scope-buttons shopping-groups" role="group" aria-label="${w.list}">${['pending','bought','received'].map(tab=>`<button type="button" class="secondary" data-shopping-tab="${tab}" aria-pressed="${shoppingTab===tab}">${w[tab]} <small>${shoppingItems.filter(i=>tab==='received'?i.received:tab==='bought'?i.bought&&!i.received:!i.bought).length}</small></button>`).join('')}</div>${items.length?`<div class="shopping-entries">${items.map(item=>{const shown=item.received&&item.receipt?{...item,...item.receipt}:item;return `<article class="shopping-entry"><div class="shopping-entry-main">${!item.received?`<label class="purchase-check"><input type="checkbox" data-shopping-bought="${escapeHTML(item.id)}" ${item.bought?'checked':''} aria-label="${w.bought} ${escapeHTML(foodLabel(item.name))}"></label>`:`<span class="received-tick" aria-hidden="true">✓</span>`}<div><h2>${escapeHTML(foodLabel(shown.name))}</h2><p>${quantityText(shown.amount,shown.unit)} · ${R().states[shown.state]}</p><small>${item.source==='menu'?`${w.sourceMenu}${item.dates?` · ${dateSpan(item.dates)}`:''}`:w.sourceManual}</small></div></div><div class="shopping-entry-actions">${item.bought&&!item.received?`<button type="button" class="primary" data-receive-shopping="${escapeHTML(item.id)}">${w.receive}</button>`:''}<button type="button" class="text-link remove-shopping" data-shopping-remove="${escapeHTML(item.id)}">${w.remove}</button></div></article>`;}).join('')}</div>`:`<div class="empty-state">${icon('shopping')}<h2>${shoppingItems.length?w.noGroup:w.noItems}</h2></div>`}`;
 }
 function freshShopping(){const data=loadShopping(localStorage);if(data.error)throw new Error('Unreadable shopping data');return data.items;}
 function writeShopping(next){saveShopping(localStorage,next);shoppingItems=next;shoppingLoadError=false;}
@@ -392,7 +394,7 @@ function openReceipt(id){
 }
 document.addEventListener('click',event=>{
   const target=event.target.closest('button');if(!target)return;
-  if(target.hasAttribute('data-open-check')){page='shopping';shoppingView='check';render();}
+  if(target.hasAttribute('data-open-check')){page='shopping';shoppingView='check';if(target.hasAttribute('data-check-week')){const days=weekDays(weekAnchor);rangeStart=days[0];rangeEnd=days[6];checkScope='range';}render();}
   else if(target.dataset.shoppingView){shoppingView=target.dataset.shoppingView;render();}
   else if(target.dataset.checkScope){checkScope=target.dataset.checkScope;render();}
   else if(target.dataset.shoppingTab){shoppingTab=target.dataset.shoppingTab;render();}
@@ -401,7 +403,7 @@ document.addEventListener('click',event=>{
   else if(target.hasAttribute('data-workflow-close'))workflowDialog.close();
   else if(target.hasAttribute('data-generate-shopping')){
     const report=reportNow();if(report.error){toast(W().loadError);return;}
-    try{writeShopping(shoppingFromShortages(freshShopping(),report.rows,uid));}catch{toast(W().error);return;}
+    try{writeShopping(shoppingFromShortages(freshShopping(),report.rows,uid,report.dates));}catch{toast(W().error);return;}
     shoppingView='list';shoppingTab='pending';render();toast(W().generated);
   }else if(target.dataset.receiveShopping)openReceipt(target.dataset.receiveShopping);
   else if(target.dataset.shoppingRemove){try{writeShopping(freshShopping().filter(i=>i.id!==target.dataset.shoppingRemove));}catch{toast(W().error);return;}render();}
@@ -424,4 +426,85 @@ document.addEventListener('submit',event=>{
     try{const result=receiveShopping(localStorage,event.target.dataset.receiptId,details);shoppingItems=result.items;pantryItems=result.pantry;}catch{error.textContent=W().error;return;}
     workflowDialog.close();shoppingTab='received';render();toast(W().receivedToast);
   }
+});
+
+function shortDate(day){return new Intl.DateTimeFormat(language==='zh'?'zh-CN':'en-US',{month:'short',day:'numeric',year:day.slice(0,4)===localDay().slice(0,4)?undefined:'numeric',timeZone:'UTC'}).format(new Date(`${day}T12:00:00Z`));}
+function fullDate(day){return new Intl.DateTimeFormat(language==='zh'?'zh-CN':'en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(`${day}T12:00:00Z`));}
+function dateSpan(dates){return dates.length===1?shortDate(dates[0]):`${shortDate(dates[0])} – ${shortDate(dates.at(-1))}`;}
+function homeHTML(){
+  const c=copy[language],v=V();
+  return `<div class="quick-links"><button type="button" data-library="wanted"><span aria-hidden="true">♡</span> ${c.wanted}</button><button type="button" data-library="cooked"><span aria-hidden="true">✓</span> ${c.cooked}</button></div>
+    <div class="recipe-tabs menu-modes" role="group" aria-label="${v.weekMenu}">${['daily','week'].map(mode=>`<button type="button" data-menu-view="${mode}" aria-pressed="${menuView===mode}">${v[mode]}</button>`).join('')}</div>
+    ${menuView==='week'?weekHTML():`${menuSection(localDay(),c.today)}${menuSection(followingDay(localDay()),c.tomorrow)}`}
+    <button type="button" class="secondary check-home" data-open-check ${menuView==='week'?'data-check-week':''}>${menuView==='week'?v.checkWeek:W().check} ↗</button>`;
+}
+function weekHTML(){
+  const v=V(),days=weekDays(weekAnchor);
+  return `<div class="week-toolbar"><button type="button" class="week-arrow" data-week-shift="-7" aria-label="${v.previous}">‹</button><span>${dateSpan(days)}</span><button type="button" class="week-arrow" data-week-shift="7" aria-label="${v.next}">›</button></div>
+    <div class="week-jump"><label class="sr-only" for="menu-date">${v.chooseDay}</label><input id="menu-date" type="date" min="1000-01-07" max="9999-12-25" value="${selectedMenuDay}"><button type="button" class="text-link" data-week-today>${v.today}</button></div>
+    <div class="week-days" role="group" aria-label="${v.chooseDay}">${days.map(day=>{const count=plans.filter(p=>p.date===day).length;return `<button type="button" data-week-day="${day}" class="${day===localDay()?'is-today':''}" aria-pressed="${day===selectedMenuDay}" aria-label="${escapeHTML(`${fullDate(day)} · ${count} ${count===1?v.dishSingle:v.dishCount}`)}"><span>${new Intl.DateTimeFormat(language==='zh'?'zh-CN':'en-US',{weekday:'short',timeZone:'UTC'}).format(new Date(`${day}T12:00:00Z`))}</span><b>${Number(day.slice(-2))}</b><small aria-hidden="true">${count||'·'}</small></button>`;}).join('')}</div>
+    ${menuSection(selectedMenuDay,fullDate(selectedMenuDay),true)}`;
+}
+function validSelectedRange(){try{dateRange(rangeStart,rangeEnd);return true;}catch{return false;}}
+function scopeHTML(){
+  const w=W(),v=V();return `<div class="scope-buttons" role="group" aria-label="${w.check}">${['today','tomorrow','both','week','range'].map(id=>`<button type="button" class="secondary" data-check-scope="${id}" aria-pressed="${checkScope===id}">${id==='week'?v.weekScope:id==='range'?v.range:w[id]}</button>`).join('')}</div>${checkScope==='range'?`<div class="check-range"><label for="check-start">${v.start}<input id="check-start" type="date" min="1000-01-01" max="9999-12-31" value="${escapeHTML(rangeStart)}"></label><label for="check-end">${v.end}<input id="check-end" type="date" min="1000-01-01" max="9999-12-31" value="${escapeHTML(rangeEnd)}"></label></div>`:''}`;
+}
+function copyError(error){return error.message==='Same meal'?V().same:error.message==='Empty source'?V().empty:error.message==='Missing recipe'?V().missing:V().invalid;}
+function freshCopyPreview(){
+  const data=loadPlans(localStorage),library=loadRecipes(localStorage);
+  if(data.error||library.error)throw new Error('Unreadable');
+  const target={date:copyDialog.querySelector('#copy-date').value,meal:copyDialog.querySelector('#copy-meal').value};
+  weekDays(target.date);
+  const preview=mealCopyPreview(data.plans,copySource,target,library.recipes);
+  const signature=JSON.stringify([preview.dishes,preview.existing,preview.dishes.map(p=>library.recipes.find(r=>r.id===p.recipeId)?.name??null)]);
+  return {data,library,target,preview,signature};
+}
+function copyPreviewHTML(preview,recipes){
+  const v=V();
+  const list=items=>`<ul>${items.map(item=>`<li>${escapeHTML(recipes.find(r=>r.id===item.recipeId)?.name??P().missing)} <small>${item.servings} ${P().servings}</small></li>`).join('')}</ul>`;
+  return `${preview.missing.length?`<p class="form-error">${v.missing}</p>`:''}${preview.added.length?`<h3>${v.add} · ${preview.added.length}</h3>${list(preview.added)}`:''}${preview.existing.length?`<h3>${v.keep} · ${preview.existing.length}</h3>${list(preview.existing)}`:''}${preview.skipped.length?`<p class="form-note">${v.skip}: ${preview.skipped.length}</p>`:''}${!preview.added.length&&!preview.missing.length?`<p class="form-note">${v.nothing}</p>`:''}`;
+}
+function refreshCopyPreview(){
+  const error=copyDialog.querySelector('#copy-error'),previewBox=copyDialog.querySelector('#copy-preview'),save=copyDialog.querySelector('[type=submit]');
+  error.textContent='';copySignature=null;
+  try{
+    const result=freshCopyPreview();copySignature=result.signature;previewBox.innerHTML=copyPreviewHTML(result.preview,result.library.recipes);
+    save.disabled=result.preview.missing.length>0||!result.preview.added.length;
+  }catch(e){previewBox.innerHTML='';error.textContent=e.message==='Unreadable'?P().loadError:copyError(e);save.disabled=true;}
+}
+function openMealCopy(date,meal){
+  copySource={date,meal};const v=V();
+  copyDialog.innerHTML=`<form id="menu-copy-form"><div class="dialog-header"><h2 id="copy-title">${v.copyTitle}</h2><button type="button" data-copy-close aria-label="${P().close}">×</button></div><p class="detail-meta">${v.from}: ${fullDate(date)} · ${copy[language][meal]}</p><p class="form-note">${v.existing}</p><label for="copy-date">${v.date}<input id="copy-date" type="date" min="1000-01-01" max="9999-12-31" value="${followingDay(date)}" required></label><label for="copy-meal">${v.meal}<select id="copy-meal">${MEALS.map(m=>`<option value="${m}" ${m===meal?'selected':''}>${copy[language][m]}</option>`).join('')}</select></label><div id="copy-preview" class="copy-preview" aria-live="polite"></div><p class="form-error" id="copy-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" data-copy-close>${P().cancel}</button><button type="submit" class="primary">${v.copySave}</button></div></form>`;
+  copyDialog.setAttribute('aria-labelledby','copy-title');refreshCopyPreview();copyDialog.showModal();
+}
+document.addEventListener('click',event=>{
+  const button=event.target.closest('button');if(!button)return;
+  if(button.dataset.menuView){menuView=button.dataset.menuView;if(menuView==='week'){selectedMenuDay=localDay();weekAnchor=selectedMenuDay;}render();}
+  else if(button.dataset.weekDay){selectedMenuDay=button.dataset.weekDay;render();}
+  else if(button.dataset.weekShift){try{const next=shiftDay(selectedMenuDay,Number(button.dataset.weekShift));weekDays(next);selectedMenuDay=next;weekAnchor=next;render();}catch{toast(V().invalid);}}
+  else if(button.hasAttribute('data-week-today')){selectedMenuDay=localDay();weekAnchor=selectedMenuDay;render();}
+  else if(button.dataset.copyDate)openMealCopy(button.dataset.copyDate,button.dataset.copyMeal);
+  else if(button.hasAttribute('data-copy-close'))copyDialog.close();
+});
+document.addEventListener('change',event=>{
+  if(event.target.id==='menu-date'){
+    const day=event.target.value;try{weekDays(day);}catch{event.target.value=selectedMenuDay;toast(V().invalid);return;}
+    selectedMenuDay=day;weekAnchor=day;render();
+  }
+  else if(['check-start','check-end'].includes(event.target.id)){
+    if(event.target.id==='check-start')rangeStart=event.target.value;else rangeEnd=event.target.value;
+    render();
+  }else if(['copy-date','copy-meal'].includes(event.target.id))refreshCopyPreview();
+});
+copyDialog.addEventListener('submit',event=>{
+  if(event.target.id!=='menu-copy-form')return;event.preventDefault();
+  const error=copyDialog.querySelector('#copy-error');
+  try{
+    const latest=freshCopyPreview();
+    if(latest.signature!==copySignature){refreshCopyPreview();error.textContent=V().changed;return;}
+    const result=copyMeal(latest.data.plans,copySource,latest.target,latest.library.recipes,uid);
+    if(result.added)savePlans(localStorage,result.plans);
+    plans=result.plans;records=latest.library.recipes;planLoadError=false;
+    copyDialog.close();menuView='week';selectedMenuDay=latest.target.date;weekAnchor=selectedMenuDay;render();toast(result.added?V().copied:V().nothing);
+  }catch(e){error.textContent=['Same meal','Empty source','Missing recipe','Invalid meal'].includes(e.message)?copyError(e):P().saveError;}
 });

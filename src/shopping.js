@@ -4,20 +4,22 @@ import {validDay} from './plans.js';
 import {canonicalAmount,requirementKey,roundAmount} from './shortages.js';
 export const SHOPPING_KEY='eat-well-shopping-v1';
 export const SHOPPING_UNITS=[...PANTRY_UNITS,'tbsp','tsp'];
-export function validShoppingItem(i){return Boolean(i&&typeof i.id==='string'&&i.id.length>0&&i.id.length<=91&&typeof i.name==='string'&&i.name.trim().length>0&&i.name.length<=80&&typeof i.key==='string'&&i.key===foodIdentity(i.name).key&&SHOPPING_UNITS.includes(i.unit)&&(i.amount===null||typeof i.amount==='number'&&Number.isFinite(i.amount)&&i.amount>0&&i.amount<=1e8)&&STATES.includes(i.state)&&typeof i.bought==='boolean'&&typeof i.received==='boolean'&&(!i.received||i.bought)&&['menu','manual'].includes(i.source)&&(i.receipt===undefined||validReceipt(i.receipt)));}
+export function validShoppingItem(i){return Boolean(i&&typeof i.id==='string'&&i.id.length>0&&i.id.length<=91&&typeof i.name==='string'&&i.name.trim().length>0&&i.name.length<=80&&typeof i.key==='string'&&i.key===foodIdentity(i.name).key&&SHOPPING_UNITS.includes(i.unit)&&(i.amount===null||typeof i.amount==='number'&&Number.isFinite(i.amount)&&i.amount>0&&i.amount<=1e8)&&STATES.includes(i.state)&&typeof i.bought==='boolean'&&typeof i.received==='boolean'&&(!i.received||i.bought)&&['menu','manual'].includes(i.source)&&(i.dates===undefined||validDates(i.dates))&&(i.receipt===undefined||validReceipt(i.receipt)));}
+function validDates(dates){return Array.isArray(dates)&&dates.length>0&&dates.length<=31&&dates.every(validDay)&&new Set(dates).size===dates.length;}
 function validReceipt(r){return Boolean(r&&typeof r.name==='string'&&r.name.trim().length>0&&r.name.length<=80&&Number.isFinite(r.amount)&&r.amount>0&&r.amount<=100000&&PANTRY_UNITS.includes(r.unit)&&STATES.includes(r.state)&&LOCATIONS.includes(r.location)&&(r.date===''||validDay(r.date)));}
 function validList(items){return Array.isArray(items)&&items.every(validShoppingItem)&&new Set(items.map(i=>i.id)).size===items.length;}
 export function loadShopping(storage){try{const raw=storage.getItem(SHOPPING_KEY);if(raw===null)return {items:[],error:false};const data=JSON.parse(raw);if(data?.version!==1||!validList(data.items))throw new Error('Invalid shopping data');return {items:data.items,error:false};}catch{return {items:[],error:true};}}
 export function saveShopping(storage,items){if(!validList(items))throw new Error('Invalid shopping list');storage.setItem(SHOPPING_KEY,JSON.stringify({version:1,items}));}
 function groupOf(item){const quantity=canonicalAmount(item.amount,item.unit);return requirementKey(item.key,quantity.unit,item.state);}
-export function shoppingFromShortages(items,rows,idFactory){
+export function shoppingFromShortages(items,rows,idFactory,dates){
+  if(dates!==undefined&&!validDates(dates))throw new Error('Invalid shopping dates');
   if(!validList(items))throw new Error('Invalid shopping list');
   const keep=items.filter(i=>i.source!=='menu'||i.bought||i.received);
   for(const row of rows.filter(r=>r.status==='missing'&&r.missing>0)){
     const already=keep.filter(i=>!i.received&&groupOf(i)===row.id&&i.amount!==null).reduce((n,i)=>n+canonicalAmount(i.amount,i.unit).amount,0);
     const amount=roundAmount(Math.max(0,row.missing-already));if(!amount)continue;
     const old=items.find(i=>i.source==='menu'&&!i.bought&&!i.received&&groupOf(i)===row.id);
-    keep.push({id:old?.id??idFactory(),name:row.name,key:row.key,amount,unit:row.unit,state:row.state,bought:false,received:false,source:'menu'});
+    keep.push({id:old?.id??idFactory(),name:row.name,key:row.key,amount,unit:row.unit,state:row.state,bought:false,received:false,source:'menu',...(dates?{dates:[...dates].sort()}:{} )});
   }
   return keep;
 }

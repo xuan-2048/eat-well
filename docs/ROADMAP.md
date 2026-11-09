@@ -11,7 +11,7 @@ Eat Well connects a personal recipe library with meal planning, fridge stock and
 | 5 | Several dishes per meal and serving-based ingredient previews | Implemented |
 | 6 | Selected-day ingredient check with compatible unit and preparation matching | Implemented |
 | 7 | Shopping list, purchased state and confirmed actual-quantity pantry receipt | Implemented |
-| 8 | Weekly menu and copying meals | Planned |
+| 8 | Weekly menu, copying meals and selected-date shopping | Implemented |
 | 9 | Cooking records with actual portions, notes and photos | Planned |
 | 10 | Versioned export and restore | Planned |
 | 11 | Nutrition per recipe and serving | Planned |
@@ -20,7 +20,7 @@ Eat Well connects a personal recipe library with meal planning, fridge stock and
 
 ## Current milestone
 
-Steps 5–7 include migration of existing single-dish menus, ingredient scaling, shared-stock allocation, explicit review of uncertain conversions and repeatable shopping-list generation. Recipe quantities remain unchanged by planned portions. Purchased items enter the fridge only after confirming their actual quantity, storage and date.
+Step 8 adds a Monday-to-Sunday selector, previous/next week navigation, direct date selection, meal-copy previews and custom shopping date ranges. Copying preserves destination dishes and skips existing recipe IDs. Source and destination edits detected before copying require another review. Ingredient checks allocate stock once across the chosen range, and generated shopping entries retain their source dates. Existing daily menus and shopping entries remain compatible.
 
 Validation includes automated model/persistence tests and English/Chinese browser checks at phone widths. README screenshots use the English interface with separate demo data and are displayed individually.
 
