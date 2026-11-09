@@ -12,6 +12,8 @@ Started: 2026-11-08 (America/New_York). Milestones describe scope, not a promise
 | 5 | Expand the catalog and improve date-aware sorting | Validate recipe fields; date changes and incomplete data covered | Planned |
 | 6 | Shopping list | Missing ingredients added, duplicates merged, purchased items managed | Planned |
 | 7 | PWA shell and deployment | Manifest/icons, offline behavior, HTTPS preview, actual phone installation checks | Planned |
+| 8 | Nutrition estimates per recipe and serving | Traceable ingredient amounts, sources, serving calculations and explicit unknown data | Planned |
+| 9 | Meal intake and daily nutrition summary | Record consumed portions independently of planned recipes; aggregate without treating missing nutrients as zero | Planned |
 
 ## Checkpoint policy / 提交节奏
 
@@ -25,4 +27,4 @@ Started: 2026-11-08 (America/New_York). Milestones describe scope, not a promise
 
 Local-first storage before account sync. No image recognition, autonomous recipe generation, nutrition diagnosis or automatic food-safety decisions in the initial scope. Cuisine tags describe the recipe's intended style and may use “inspired” where appropriate.
 
-Technical framework selection is part of step 1. Avoid adding infrastructure until the feature requires it.
+Step 1 uses dependency-free HTML, CSS and JavaScript to keep the first language/layout milestone small. Future framework and backend changes should be justified by a feature. Visual direction: [cream + warm orange](DESIGN.md). Preserve the quantity and provenance requirements in the [nutrition plan](NUTRITION.md) when implementing recipe data.
