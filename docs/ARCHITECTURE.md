@@ -1,42 +1,75 @@
 # Code and data
 
-The app uses HTML, CSS and JavaScript ES modules, with an import map to keep browser module versions consistent. Python only serves the static files. There is no account system, backend or external recipe service.
+The frontend and API run as separate processes. Vite serves and builds the browser app. The nutrition estimate panel is a React/TypeScript component; the other screens and the reference editor still use the existing JavaScript modules. This is an incremental migration, with compatible entry points for existing cooking, shopping and backup code.
 
 ```text
 src/
-  app.js             Page rendering, forms and interactions
-  recipes.js         Recipe validation, filtering and storage
-  plans.js           Daily/weekly dates, dish assignments, meal copies and scaling
-  pantry.js          Stock filters and the shared stock/cooking storage
-  pantry-data.js     Stock identities and validation
-  cooking.js         Cooking records, stock-use previews, deductions and undo
-  cooking-data.js    Cooking snapshots and deduction validation
-  cooking-ui.js      History, record forms and stock confirmation
-  photos.js          Shared local photo compression and crop export
-  photo-editor.js    Drag, zoom and circular plate framing
-  photo-frame.js     Crop geometry and edit metadata validation
-  catalog.js         Bilingual recipe templates without preset photos
-  catalog-ui.js      Example recipe gallery and save controls
-  plate-ui.js        Locally saved ceramic plate choices
-  dish-art.js        Local bilingual dish/ingredient matching and shared SVG sketches
-  storage.js         Legacy-compatible storage and atomic full-data replacement
-  backup.js          Versioned file validation, export and restore
-  backup-ui.js       Download, import preview and recovery controls
-  foods.js           Common food names and bilingual aliases
-  shortages.js       Unit normalization and stock allocation
-  shopping.js        List generation, manual merging and receipt handling
-  *copy.js           English and Chinese interface text
-  select-ui.js       Consistent dropdowns with keyboard and form support
-  menu-ui.js         Scrollable meal rows and the all-dishes overview
-  styles.css         Shared typography and responsive layout
-tests/               Model, persistence and translation tests
-docs/images/         Screenshots from the running app
+  main.ts                       Vite entry point
+  app.js                        Existing page rendering and interactions
+  features/nutrition/
+    NutritionPanel.tsx          React panel and ingredient/source components
+    index.tsx                   Adapter between recipe dialogs and the React root
+    reference-dialog.js         Existing weight editor during migration
+  api/nutrition-client.ts       Typed HTTP client, cancellation and local fallback
+  repositories/recipes.js       Validated recipe reads and writes
+  services/nutrition.js         Fresh-read/save orchestration for manual references
+  recipes.js, nutrition.js      Compatibility exports for existing callers
+  storage.js                    Browser storage and atomic full-data replacement
+  plans.js, pantry.js, ...       Existing menu, stock and cooking modules
+shared/
+  recipes.js                    Recipe/ingredient validation and pure filtering
+  nutrition.js                  Matching, arithmetic and pure reference updates
+  nutrition-data.js             Generated USDA snapshot and provenance
+  nutrition-settings.js         Stored-reference validation and signatures
+  contracts.ts                  Request, response and component data types
+  nutrition-response.ts         Runtime response validation
+  photo-validation.js           Shared photo metadata validation
+server/
+  app.ts                        Express routes, input limits and error responses
+  index.ts                      Loopback listener and server configuration
+public/mark.svg                 Shared header/favicon asset
+tools/                         Dev launcher, syntax checks and USDA extraction
+tests/                         Domain, storage, API and client tests
+docs/images/                   Screenshots from the app
 ```
 
-Recipes, photos and photo-edit sources, meal plans, pantry batches, cooking records and shopping items are stored in `localStorage`. Photos are resized and compressed to JPEG in the browser. Data stays in the current browser profile and origin; it does not sync between devices. Clearing site data removes it. Use the backup control to download and restore JSON files.
+## Request flow
 
-Each dish assignment references a recipe ID and stores its own date, meal and servings. Ingredient requirements use the recipe's current quantities. A missing recipe remains visible in the menu and raises a warning during the ingredient check.
+```mermaid
+flowchart LR
+  A[Recipe details] --> B[React nutrition panel]
+  B --> C[Typed API client]
+  C --> D[Express API]
+  D --> E[Shared calculation rules]
+  C -->|Service unavailable| E
+  F[Weight editor] --> G[Nutrition save service]
+  G --> H[Recipe repository]
+  H --> I[Browser storage adapter]
+  G --> E
+```
 
-Existing single-dish menus load into the multiple-dish format without changing their dates or servings. On the first save, the original version-1 menu payload is backed up before version 2 is written. Unreadable saved collections are reported rather than silently replaced. Receipt handling uses a stable stock ID so an interrupted save can be retried without duplicate groceries.
+The nutrition client sends only the recipe yield, ingredient quantities/preparation, confirmed reference choices and requested servings. It excludes recipe IDs/titles, photos, steps and unrelated data. The API validates the versioned request, calculates a result and discards the input. It has no database, file-writing route or external AI connection. No request bodies are logged.
 
-Cooking records and pantry batches share a version-2 payload under the existing pantry storage key. The first cooking save or new purchase receipt preserves the version-1 pantry payload as a migration backup. A deduction, undo or deletion writes both the new stock quantities and the record state in one localStorage operation. Failed writes leave both unchanged, and retries do not deduct or restore the same record twice. Ordinary pantry and shopping updates preserve the cooking records. Durable receipt markers prevent a retried purchase from re-adding groceries even after the original batch has been used up. The migration backup is separate from a complete downloaded backup. After the first restore, a shared storage adapter saves all active collections and the recovery copy under one atomic envelope, `eat-well-data-v1`. Later model writes preserve the other collections and the recovery copy. Older individual keys are read until that first restore and cleaned up only after it succeeds.
+Response validation checks the dataset version, row identities, nullable values and coverage before the component uses a result. A new serving selection or unmounted dialog cancels the preceding request. Late results cannot replace the current view. Service failure uses the same calculation rules locally and shows a fallback message. Invalid local input is rejected rather than hidden by fallback.
+
+Shared modules import only other shared modules. They do not import React, Express, browser globals, repositories or storage. The API never imports frontend modules. This boundary is checked in the test suite. API contracts are documented in [API.md](API.md).
+
+## Running and building
+
+`npm start` launches the API at `127.0.0.1:8020` and Vite at `127.0.0.1:8011`. Open **http://localhost:8011** to retain the existing browser origin. The frontend proxies `/api` to the backend; changing the browser URL to the API port does not open the app.
+
+`npm run dev:frontend` and `npm run dev:server` run them independently. Optional `.env` settings are server configuration; Vite exposes no custom environment variables to browser code. Frontend output contains no server modules. No API key is needed for this milestone.
+
+`npm run check` checks every JavaScript module and type-checks the migrated TypeScript. `npm test` runs domain/storage tests, real HTTP tests and API-client tests. `npm run build` creates the frontend in `dist/` with hashed assets, replacing the old manual import map. For a local production preview, run `npm run start:server` and `npm run preview` in separate terminals after stopping the development launcher.
+
+## Local persistence
+
+Recipes, photos/edit originals, plans, pantry batches, cooking records and shopping items remain in the current browser profile and origin. The API does not own or synchronize these collections. This refactor changes no storage keys or backup versions, and requires no data migration. Clearing site data still removes the local collections and recovery copy; downloaded JSON backups remain the way to keep a separate copy.
+
+Each dish assignment references a recipe ID and stores its own date, meal and servings. Requirements use current recipe quantities. A missing recipe remains visible and raises a warning during ingredient checks. Nutrition references pin an ingredient index, ingredient signature, FDC ID, data version and total edible grams. Changed ingredients invalidate their old references. Backups and cooking snapshots preserve this metadata.
+
+Existing single-dish menus load into the multiple-dish format without changing dates or servings. The first save preserves the original version-1 payload before writing version 2. Unreadable collections are reported rather than silently replaced.
+
+Cooking records and pantry batches share the version-2 pantry payload. Stock deductions, undo and record changes use one localStorage write. Receipt markers prevent a retried purchase from adding groceries twice, even after a batch has been consumed. Failed writes preserve the preceding state.
+
+After a full restore, the storage adapter writes all active collections and their recovery copy in one envelope, `eat-well-data-v1`. Ordinary writes retain other collections and recovery data. Older individual keys remain readable until the first restore succeeds.

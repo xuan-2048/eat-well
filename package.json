@@ -4,8 +4,32 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/*.test.js",
-    "start": "python3 -m http.server 8011 --bind 127.0.0.1",
-    "check": "node --check src/app.js && node --check src/copy.js && node --check src/recipes.js && node --check src/recipe-copy.js && node --check src/plans.js && node --check src/plan-copy.js && node --check src/foods.js && node --check src/pantry.js && node --check src/pantry-copy.js && node --check src/shortages.js && node --check src/shopping.js && node --check src/workflow-copy.js && node --check src/week-copy.js && node --check src/pantry-data.js && node --check src/cooking-data.js && node --check src/cooking.js && node --check src/photos.js && node --check src/cooking-ui.js && node --check src/cooking-copy.js && node --check src/select-ui.js && node --check src/storage.js && node --check src/backup.js && node --check src/backup-copy.js && node --check src/backup-ui.js && node --check src/menu-ui.js && node --check src/photo-frame.js && node --check src/photo-editor.js && node --check src/catalog.js && node --check src/catalog-ui.js && node --check src/plate-data.js && node --check src/plate-ui.js && node --check src/dish-art.js"
+    "test": "node --test tests/*.test.js tests/*.test.ts",
+    "start": "node tools/dev.mjs",
+    "check": "node tools/check.mjs && tsc --noEmit",
+    "dev": "node tools/dev.mjs",
+    "dev:frontend": "node --env-file-if-exists=.env node_modules/vite/bin/vite.js",
+    "dev:server": "node --env-file-if-exists=.env --watch server/index.ts",
+    "build": "tsc --noEmit && vite build",
+    "preview": "node --env-file-if-exists=.env node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 8011 --strictPort",
+    "start:server": "node --env-file-if-exists=.env server/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "6.0.2",
+    "typescript": "5.9.3",
+    "vite": "8.0.13"
   }
 }

@@ -1,35 +1,49 @@
-# Future nutrition analysis · 后续营养分析
+# Nutrition estimates
 
-Status: planned, not implemented. Requested by the owner on 2026-11-08.
+Recipe details show calories (kcal), protein, total carbohydrate, fat and fiber (g). Choose **Per serving**, **Whole recipe** or **Selected servings**. The last option follows the serving input above the ingredient list. Daily intake totals and AI suggestions are not implemented yet.
 
-## Useful first slice
+菜谱详情支持每份、整道菜和所选份数的营养估算。展开“查看食材与计算依据”可以补充重量、调整参考食物，或检查每项食材贡献了多少。
 
-Estimate a recipe's energy, protein, fat, carbohydrate and fiber per serving. Show ingredient contributions, data sources and incomplete data. The cooking log already records consumed portions separately from portions made; use those entries to aggregate daily nutrient intake after recipe estimates are available.
+## Data
 
-先做每道菜、每份的营养估算，再做实际吃了多少和每日汇总。维生素与矿物质、补充剂记录单独作为后续扩展，避免与基础菜谱功能同时铺开。
+The app bundles 42 reference foods from [USDA FoodData Central’s SR Legacy CSV release, April 2018](https://fdc.nal.usda.gov/download-datasets/). This is a fixed reference snapshot, not a live API or the latest USDA release. Source values are public domain under CC0; see the [USDA API guide](https://fdc.nal.usda.gov/api-guide/). No external API key is needed. The local API uses this bundled data; if the service is unavailable, the browser calculates with the same rules and labels the fallback.
 
-## Data decisions to preserve in earlier milestones
+Each local record keeps its FDC ID, original English description, translated description, preparation state, nutrient values per 100 g, available reference portion weights and source publication date. Dataset metadata records the release, retrieval date, download URL and archive SHA-256. Source publication dates can differ from the release date.
 
-- Stable ingredient IDs independent of display language; explicit aliases.
-- Structured quantity and unit, plus raw/cooked state and recipe yield/servings.
-- Conversion to edible grams only with an explicit conversion; no guessed conversions for arbitrary “cups” or “pieces”.
-- Keep source identifier, source nutrient unit, per-100g basis where provided and retrieval/version metadata.
-- Missing nutrient data is unknown, never silently zero.
-- Track planned servings separately from the amount actually consumed.
-- If supplements are later supported, record serving size, constituent nutrients and units independently; do not sum incompatible units or forms.
+The source nutrient IDs are 1008 (energy, kcal), 1003 (protein, g), 1005 (carbohydrate by difference, g), 1004 (fat, g) and 1079 (fiber, g). Missing observations remain `null`. A recorded zero, such as the energy value for table salt, remains zero.
 
-## Sources to evaluate during implementation
+The generated subset is in `shared/nutrition-data.js`. To rebuild it, download the [official ZIP](https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip) and run:
 
-- [USDA FoodData Central API](https://fdc.nal.usda.gov/api-guide/): candidate food composition source. Evaluate dish coverage, API access, units and attribution before integration.
-- [NIH nutrient reference overview](https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/): reference terminology if personalized intake comparisons are added later.
+```sh
+python3 tools/build-nutrition-data.py /path/to/FoodData_Central_sr_legacy_food_csv_2018-04.zip
+```
 
-These links are candidates, not a completed API integration. Any comparison to reference intakes must identify the selected standard and applicable population. The product will describe estimated intake and dietary patterns, not diagnose deficiency or prescribe supplement doses.
+The extraction script checks the source nutrient units and copies observations by FDC ID. It does not generate or ask a language model for nutrient values.
 
-## Acceptance checks for the future milestone
+## Calculation
 
-Known recipe totals can be reproduced from source amounts; serving scaling is consistent; missing data is visible; raw/cooked mismatches and unsupported units are flagged; ingredient and reference sources can be inspected.
+For each included ingredient:
 
+```text
+ingredient nutrient = edible grams × source nutrient per 100 g / 100
+recipe subtotal = sum of known ingredient values
+selected servings = recipe subtotal × selected portions / original recipe yield
+```
 
-## Later: choosing one dish
+Intermediate values are not rounded; the interface displays up to one decimal place. For example, 300 g raw tomatoes and 100 g raw whole egg contribute 54 + 143 = 197 kcal to a two-serving recipe, or 98.5 kcal per serving. This excludes any unmeasured cooking oil or other ingredients.
 
-The recommendation milestone follows recipe estimates and daily intake. It combines recorded intake with available ingredients, preferences, cooking time and optional city-level weather. Location, temperature, humidity, season and meal time are context for choosing a dish, not evidence of a nutrient deficiency. Incomplete meal records stay visible as incomplete; missing nutrient values are not zero. The full implementation checklist is in [ROADMAP.md](ROADMAP.md).
+Automatic matching uses explicit Chinese/English aliases and compatible preparation states. Measured grams can be used directly. Generic oil, drained beans without a matching reference, and other ambiguous foods may need a reference selected manually. A whole recipe with only some usable ingredients is labelled **Partial estimate · known subtotal only**. Nutrients missing from an otherwise usable food have their own coverage count. No known observations produces a dash, not zero.
+
+## Confirming a weight
+
+Use **Ingredients and calculation → Complete/Adjust** to select a reference and enter **total edible grams for the entire original recipe**. The original recipe yield is shown beside the field. Remove shells and bones from the weight. Confirm the reference variety and preparation state before saving.
+
+Pieces, spoons, milliliters and “to taste” amounts do not automatically become grams. If USDA provides a compatible portion, the editor offers a button that explicitly fills its reference weight. Two large eggs, for example, can use the source’s 50 g per egg to fill 100 g. That is a reference, not a measurement of the user’s eggs. Cancel leaves stored data untouched. The editor never changes recipe quantities, shopping requirements or pantry stock.
+
+Saved references stay on the recipe and travel with JSON backups and new cooking snapshots. Later edits to ingredient name, identity, amount, unit or preparation invalidate that ingredient’s saved reference until it is confirmed again. A changed reference-data version also invalidates it. Raw/cooked mismatches are rejected; an unspecified state needs explicit confirmation. A stale open editor cannot overwrite a changed recipe, and failed storage writes leave the previous recipe intact. **Use automatic matching** removes the manual override.
+
+## Limits and next steps
+
+Reference varieties, brands and preparation methods differ. These are ingredient-based estimates: cooking retention, discarded liquid, absorbed oil and changes in water content are not modeled. Enter the oil actually used and retained when that amount is known. The app does not estimate nutrient deficiency, supplement doses or personalized intake targets.
+
+The next nutrition milestone can sum actual eaten portions from cooking records, retaining their historical recipe snapshots and visibly incomplete data. Recommendation work follows that. Optional weather describes cooking context; it is not evidence of a nutritional deficiency. See [the roadmap](ROADMAP.md).

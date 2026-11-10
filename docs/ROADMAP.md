@@ -14,16 +14,26 @@ Eat Well connects a personal recipe library with meal planning, fridge stock and
 | 8 | Weekly menu, copying meals and selected-date shopping | Implemented |
 | 9 | Cooking records, actual intake, photos and confirmed stock use with undo | Implemented |
 | 10 | Versioned export and restore | Implemented |
-| 11 | Nutrition per recipe and serving | Planned |
+| 11 | Nutrition per recipe and serving | Implemented locally |
+| 11a | React/TypeScript nutrition view, separate API and shared calculation rules | Implemented locally |
+| 11b | Move remaining page rendering and forms into React/TypeScript | Planned |
 | 12 | Daily nutrition from actual intake | Planned |
 | 13 | Context-aware dish suggestions using location, weather, time and intake | Planned |
 | 14 | Offline support and home-screen installation | Planned |
 
 ## Current milestone
 
-Step 10 adds complete JSON exports, validated import previews and explicit full replacement. Current data and its recovery copy are committed in one storage envelope; a failed write changes neither. A recovery copy can be downloaded or restored, and imported cooking deductions and purchase receipt markers retain their behavior. Dropdown text and option spacing have also been reduced for a compact 14 px dropdown style.
+Step 11 adds recipe nutrition estimates using 42 USDA SR Legacy reference foods. Per-serving, whole-recipe and selected-serving views show five nutrients, ingredient contributions and data sources. Missing weights and uncertain matches stay visible. Confirmed edible weights persist with recipes and backups; ingredient changes invalidate stale references.
 
 Validation includes automated model/persistence tests and English/Chinese browser checks at phone widths. README screenshots use the English interface with separate demo data and are displayed individually.
+
+## Architecture before AI
+
+The first slice is implemented: Vite builds the app, the nutrition estimate panel uses React/TypeScript, and an independent Express API calculates estimates. Shared rules have no browser or storage dependencies; recipe persistence has a repository and nutrition saves have a service layer. Existing JavaScript pages and the nutrition reference editor coexist with the new component through a small adapter.
+
+Next, migrate recipe forms, menu planning and fridge screens one at a time. Preserve current storage keys and compare each workflow before moving on. AI endpoints can follow this boundary; no AI provider is connected yet. Accounts, a database and cloud synchronization remain separate decisions.
+
+References: [adding React to an existing app](https://react.dev/learn/add-react-to-an-existing-project) and [migrating JavaScript to TypeScript](https://www.typescriptlang.org/docs/handbook/migrating-from-javascript.html).
 
 ## 推荐一道菜 · Recommendation to-do
 

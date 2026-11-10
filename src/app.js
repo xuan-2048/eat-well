@@ -1,3 +1,4 @@
+import {createNutritionUI} from './nutrition-ui.js';
 import {dishIllustration,ingredientIllustration} from './dish-art.js';
 import {createPlateUI,applyPlateStyle} from './plate-ui.js';
 import {PLATE_KEY} from './plate-data.js';
@@ -54,6 +55,7 @@ const uid=()=>crypto.randomUUID();
 let editingId=null,draftPhoto='',draftPhotoEdit=null,photoPending=false,photoGeneration=0,toastTimer;
 const R=()=>recipeCopy[language];
 const cookingUI=createCookingUI({storage:{getItem:key=>storage.getItem(key),setItem:(key,value)=>storage.setItem(key,value)},getLanguage:()=>language,onSaved:()=>{page='history';refreshLocalData();},navigate:()=>{page='history';render();},toast,uid});
+const nutritionUI=createNutritionUI({storage,getLanguage:()=>language,toast,onSaved:updated=>{const selected=Number(dialog.querySelector('#detail-servings')?.value)||updated.servings;freshRecipes();render();openDetails(updated.id,selected);dialog.querySelector('#nutrition-heading')?.focus();}});
 createPlateUI({storage,getLanguage:()=>language,toast});
 createCatalogUI({storage,getLanguage:()=>language,onSaved:()=>refreshLocalData(),toast});
 const backupUI=createBackupUI({storage,getLanguage:()=>language,onRestored:()=>{language=storage.getItem(LANGUAGE_KEY)==='en'?'en':'zh';refreshLocalData();},toast});
@@ -120,13 +122,15 @@ function recipeResultsHTML(){
   if(!filtered.length)return `<div class="empty-state">${icon('recipes')}<h2>${records.length?r.noResults:r.empty}</h2><p>${records.length?r.noResultsHint:r.emptyHint}</p>${!records.length?`<button class="secondary" type="button" data-sample ${recipeLoadError?'disabled':''}>${r.sample}</button>`:''}</div>`;
   return `<div class="recipe-grid">${filtered.map(item=>`<button class="recipe-card" type="button" data-open-recipe="${escapeHTML(item.id)}"><div class="dish-image">${item.photo?`<img src="${item.photo}" alt="" loading="lazy">`:`${dishIllustration(item)}`}</div><span class="dish-content"><small>${r.cuisines[item.cuisine]} · ${item.servings} ${r.servingSuffix}${item.sample?' · '+r.sampleTag:''}</small><strong>${escapeHTML(item.name)}</strong><span class="dish-ingredients">${escapeHTML(item.ingredients.map(i=>i.name).join(' · '))}</span><span class="dish-tags">${item.wanted?`<span>♡ ${copy[language].wanted}</span>`:''}${item.cooked?`<span>✓ ${copy[language].cooked}</span>`:''}</span></span><span class="dish-arrow" aria-hidden="true">↗</span></button>`).join('')}</div>`;
 }
-function openDetails(id){
+function openDetails(id,selectedServings){
   const item=records.find(r=>r.id===id);if(!item)return;
-  const r=R();
+  const r=R();selectedServings=Number.isFinite(selectedServings)&&selectedServings>0&&selectedServings<=100?selectedServings:item.servings;
+  nutritionUI.unmount();
   dialog.dataset.recipe=id;
-  dialog.innerHTML=`<div class="dialog-header"><span>${r.detail}</span><button type="button" data-close-dialog aria-label="${r.close}">×</button></div>${item.photo?`<img class="detail-photo" src="${item.photo}" alt="">`:''}<p class="detail-meta">${r.cuisines[item.cuisine]} · ${item.servings} ${r.servingSuffix}</p><h2 id="detail-title">${escapeHTML(item.name)}</h2><div class="status-actions"><button type="button" data-toggle-status="wanted" aria-pressed="${item.wanted}">♡ ${copy[language].wanted}</button><button type="button" data-toggle-status="cooked" aria-pressed="${item.cooked}">✓ ${copy[language].cooked}</button></div><label class="detail-scale" for="detail-servings">${W().scale}<input id="detail-servings" type="number" min="0.25" max="100" step="0.25" value="${item.servings}"></label><p class="form-note">${W().portionNote}</p><h3>${r.ingredients}</h3><ul id="detail-ingredients" class="ingredient-detail">${item.ingredients.map(i=>`<li><span>${escapeHTML(i.name)}${i.state==='unspecified'?'':`<small>${r.states[i.state]}</small>`}</span><b>${amountLabel(i)}</b></li>`).join('')}</ul><h3>${r.steps}</h3><ol class="step-list">${item.steps.map(step=>`<li>${escapeHTML(step)}</li>`).join('')}</ol>${sourceHTML(item)}<div class="detail-actions"><button class="secondary" type="button" data-edit-recipe="${escapeHTML(id)}">${r.edit}</button><button class="danger" type="button" data-confirm-delete="${escapeHTML(id)}">${r.delete}</button></div>`;
+  dialog.innerHTML=`<div class="dialog-header"><span>${r.detail}</span><button type="button" data-close-dialog aria-label="${r.close}">×</button></div>${item.photo?`<img class="detail-photo" src="${item.photo}" alt="">`:''}<p class="detail-meta">${r.cuisines[item.cuisine]} · ${item.servings} ${r.servingSuffix}</p><h2 id="detail-title">${escapeHTML(item.name)}</h2><div class="status-actions"><button type="button" data-toggle-status="wanted" aria-pressed="${item.wanted}">♡ ${copy[language].wanted}</button><button type="button" data-toggle-status="cooked" aria-pressed="${item.cooked}">✓ ${copy[language].cooked}</button></div><label class="detail-scale" for="detail-servings">${W().scale}<input id="detail-servings" type="number" min="0.25" max="100" step="0.25" value="${selectedServings}"></label><p class="form-note">${W().portionNote}</p><h3>${r.ingredients}</h3><ul id="detail-ingredients" class="ingredient-detail">${scaledList(item,selectedServings)}</ul><div id="recipe-nutrition"></div><h3>${r.steps}</h3><ol class="step-list">${item.steps.map(step=>`<li>${escapeHTML(step)}</li>`).join('')}</ol>${sourceHTML(item)}<div class="detail-actions"><button class="secondary" type="button" data-edit-recipe="${escapeHTML(id)}">${r.edit}</button><button class="danger" type="button" data-confirm-delete="${escapeHTML(id)}">${r.delete}</button></div>`;
   dialog.setAttribute('aria-labelledby','detail-title');
   if(!dialog.open)dialog.showModal();
+  nutritionUI.mount(dialog.querySelector('#recipe-nutrition'),item,selectedServings);
 }
 function ingredientRow(item={name:'',amount:'',unit:'g',state:'unspecified'}){
   const r=R(),id=uid();
@@ -236,7 +240,7 @@ document.addEventListener('submit',event=>{
     return {name,key:ingredientKey(name),amount:unit==='toTaste'?null:Number(row.querySelector('[name="amount"]').value),unit,state:row.querySelector('[name="state"]').value};
   });
   const recipe={id:old?.id??uid(),name:data.get('name').trim(),cuisine:data.get('cuisine'),servings:Number(data.get('servings')),
-    ingredients,steps:data.get('steps').split('\n').map(s=>s.trim()).filter(Boolean),wanted:data.has('wanted'),cooked:data.has('cooked'),photo:draftPhoto,photoEdit:draftPhotoEdit,createdAt:old?.createdAt??now,updatedAt:now,...(old?.sample?{sample:true}:{}),...(old?.catalogId?{catalogId:old.catalogId,source:old.source?(draftPhoto===old.photo||draftPhotoEdit?.source===old.photoEdit?.source?old.source:{title:old.source.title,url:old.source.url}):undefined}:{})};
+    ingredients,steps:data.get('steps').split('\n').map(s=>s.trim()).filter(Boolean),wanted:data.has('wanted'),cooked:data.has('cooked'),photo:draftPhoto,photoEdit:draftPhotoEdit,createdAt:old?.createdAt??now,updatedAt:now,...(old?.nutrition?{nutrition:old.nutrition}:{}),...(old?.sample?{sample:true}:{}),...(old?.catalogId?{catalogId:old.catalogId,source:old.source?(draftPhoto===old.photo||draftPhotoEdit?.source===old.photoEdit?.source?old.source:{title:old.source.title,url:old.source.url}):undefined}:{})};
   if(!validRecipe(recipe)){formError(R().validation);return;}
   const next=old?records.map(r=>r.id===old.id?recipe:r):[recipe,...records];
   if(!write(next)){formError(recipeLoadError?R().loadError:R().saveError);return;}
@@ -267,7 +271,7 @@ function openPlanner(date,meal,id){
   planner.setAttribute('aria-labelledby','planner-title');planner.showModal();
 }
 function plannerSelection(){const recipe=records.find(r=>r.id===selectedRecipeId);return recipe?`${P().selected}: ${escapeHTML(recipe.name)}`:P().notSelected;}
-function scaledList(recipe,servings){return scaleIngredients(recipe,servings).map(i=>`<li><span>${escapeHTML(i.name)}</span><b>${amountLabel(i)}</b></li>`).join('');}
+function scaledList(recipe,servings){return scaleIngredients(recipe,servings).map(i=>`<li><span>${escapeHTML(i.name)}${i.state==='unspecified'?'':`<small>${R().states[i.state]}</small>`}</span><b>${amountLabel(i)}</b></li>`).join('');}
 function plannerIngredientPreview(servings){const recipe=records.find(r=>r.id===selectedRecipeId);if(!recipe||!Number.isFinite(servings)||servings<=0||servings>100)return '';return `<h3>${W().planPreview}</h3><ul class="ingredient-detail">${scaledList(recipe,servings)}</ul>`;}
 function plannerOptions(){
   const p=P(),visible=filterRecipes(records,{query:plannerQuery});if(!visible.length)return `<p class="planner-no-match">${p.noMatch}</p>`;
@@ -284,7 +288,7 @@ document.addEventListener('click',event=>{
 document.addEventListener('input',event=>{
   if(event.target.id==='planner-search'){plannerQuery=event.target.value;planner.querySelector('#planner-options').innerHTML=plannerOptions();}
   if(event.target.id==='planned-servings')planner.querySelector('#planner-ingredients').innerHTML=plannerIngredientPreview(Number(event.target.value));
-  if(event.target.id==='detail-servings'){const recipe=records.find(r=>r.id===dialog.dataset.recipe),n=Number(event.target.value);if(recipe&&n>0&&n<=100)dialog.querySelector('#detail-ingredients').innerHTML=scaledList(recipe,n);}
+  if(event.target.id==='detail-servings'){const recipe=records.find(r=>r.id===dialog.dataset.recipe),n=Number(event.target.value);if(recipe&&n>0&&n<=100){dialog.querySelector('#detail-ingredients').innerHTML=scaledList(recipe,n);nutritionUI.updateServings(n);}}
 });
 document.addEventListener('change',event=>{if(event.target.name==='recipeId'){selectedRecipeId=event.target.value;planner.querySelector('#planner-selection').innerHTML=plannerSelection();planner.querySelector('#planner-ingredients').innerHTML=plannerIngredientPreview(Number(planner.querySelector('#planned-servings').value));}});
 document.addEventListener('submit',event=>{
@@ -547,3 +551,5 @@ copyDialog.addEventListener('submit',event=>{
     copyDialog.close();menuView='week';selectedMenuDay=latest.target.date;weekAnchor=selectedMenuDay;render();toast(result.added?V().copied:V().nothing);
   }catch(e){error.textContent=['Same meal','Empty source','Missing recipe','Invalid meal'].includes(e.message)?copyError(e):P().saveError;}
 });
+
+dialog.addEventListener('close',()=>{if(!dialog.open)nutritionUI.unmount();});
