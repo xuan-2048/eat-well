@@ -1,4 +1,4 @@
-<img src="mark.svg" width="52" alt="Eat Well spoon logo">
+<img src="mark.svg" width="52" alt="Eat Well pig holding a spoon">
 
 # Eat Well · 好好吃饭
 
@@ -79,4 +79,4 @@ Tests cover recipe validation, meal planning, quantity scaling, ingredient match
 
 Details: [roadmap](docs/ROADMAP.md), [sample recipe sources](docs/RECIPE_CATALOG.md), [design notes](docs/DESIGN.md).
 
-The early menu layout was inspired by [Civa](https://xhslink.cn/o/4xtGwV55nr9). The spoon logo, food sketches and plate styling are original to this project.
+The early menu layout was inspired by [Civa](https://xhslink.cn/o/4xtGwV55nr9). The pig-and-spoon logo, food sketches and plate styling are original to this project.

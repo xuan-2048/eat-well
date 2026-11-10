@@ -204,3 +204,12 @@ Redesigned the mark as a spoon with a filled tomato-red bowl, concave highlight 
 README now has a short project description, feature list, setup/check commands and two complete English page screenshots: weekly menu and fridge. Detailed workflows and persistence notes moved to USAGE.md and ARCHITECTURE.md. Screenshots are captured from separate demo data without open dialogs or cropped controls. Added ingredient-alias and safe-markup checks; the full suite has 92 passing tests. The user authorized one combined commit and push after these changes.
 
 The final logo was refined from the user's spoon-sketch reference into an original Chinese soup-spoon outline: ivory body, tomato-red hand-drawn contours and pale apricot background. The broad curved bowl, inner depth line and handle opening replace the earlier oval-spoon design.
+
+
+## 2026-11-09 · Pig-and-spoon mascot refinement
+
+After local commit 29d19cd, before pushing, the user requested a pig holding a spoon in a hand-drawn beige palette without a background. Replaced the mark with an original transparent SVG mascot, updated header/favicon versions and refreshed README screenshots. This refinement is a separate follow-up commit; the earlier local commit is preserved.
+
+The mascot was further refined at the user’s request to soft pink with smiling eyes, a small smile and blush. The spoon remains beige and the background stays transparent.
+
+Final mascot choice: the original cream/beige pig with its dot eyes and subtle smile, plus only two small pale blush marks. The pink body and curved-eye variation were discarded.
