@@ -1,32 +1,42 @@
-import {STATES,ingredientKey} from './recipes.js';
-import {foodById,recognizeFood,pantryName} from './foods.js';
+import {pantryName,recognizeFood} from './foods.js';
 import {validDay,localDay} from './plans.js';
+import {validPantryItem,validPantryItems,validPurchaseReceipts} from './pantry-data.js';
+import {validCookingRecords} from './cooking-data.js';
+export {PANTRY_UNITS,LOCATIONS,foodIdentity,validPantryItem} from './pantry-data.js';
 export const PANTRY_KEY='eat-well-pantry-v1';
-export const PANTRY_UNITS=['g','kg','ml','l','piece','pack','bottle'];
-export const LOCATIONS=['fridge','freezer','pantry'];
-export function foodIdentity(name){const food=recognizeFood(name);return {foodId:food?.id??null,key:food?.key??ingredientKey(name)};}
-export function validPantryItem(item){
-  return Boolean(item&&typeof item.id==='string'&&item.id.length>0&&item.id.length<=100
-    &&typeof item.name==='string'&&item.name.trim().length>0&&item.name.length<=80
-    &&(item.foodId===null||Object.hasOwn(foodById,item.foodId))
-    &&item.key===(item.foodId===null?ingredientKey(item.name):foodById[item.foodId].key)
-    &&typeof item.amount==='number'&&Number.isFinite(item.amount)&&item.amount>0&&item.amount<=100000
-    &&(item.state===undefined||STATES.includes(item.state))
-    &&PANTRY_UNITS.includes(item.unit)&&LOCATIONS.includes(item.location)
-    &&(item.date===''||validDay(item.date))
-    &&typeof item.createdAt==='string'&&Number.isFinite(Date.parse(item.createdAt))
-    &&typeof item.updatedAt==='string'&&Number.isFinite(Date.parse(item.updatedAt)));
+export function loadKitchen(storage){
+  try{
+    const raw=storage.getItem(PANTRY_KEY);
+    if(raw===null)return {version:1,items:[],records:[],receipts:[],error:false};
+    const data=JSON.parse(raw);
+    if(![1,2].includes(data?.version)||!validPantryItems(data.items)||data.version===2&&(!validCookingRecords(data.records)||(data.receipts!==undefined&&!validPurchaseReceipts(data.receipts))))throw new Error('Invalid kitchen data');
+    return {version:data.version,items:data.items,records:data.version===2?data.records:[],receipts:data.version===2?(data.receipts??[]):[],error:false};
+  }catch{return {version:0,items:[],records:[],receipts:[],error:true};}
 }
-function validItems(items){return Array.isArray(items)&&items.every(validPantryItem)&&new Set(items.map(i=>i.id)).size===items.length;}
-export function loadPantry(storage){
-  try{const raw=storage.getItem(PANTRY_KEY);if(raw===null)return {items:[],error:false};
-    const data=JSON.parse(raw);if(data?.version!==1||!validItems(data.items))throw new Error('Invalid inventory');
-    return {items:data.items,error:false};
-  }catch{return {items:[],error:true};}
+export function loadPantry(storage){const result=loadKitchen(storage);return {items:result.items,error:result.error};}
+export function saveKitchen(storage,items,records,receipts){
+  if(!validPantryItems(items)||!validCookingRecords(records))throw new Error('Invalid kitchen data');
+  const current=loadKitchen(storage);if(current.error)throw new Error('Unreadable kitchen data');
+  const savedReceipts=receipts??current.receipts;if(!validPurchaseReceipts(savedReceipts))throw new Error('Invalid receipts');
+  if(current.version===1){
+    const raw=storage.getItem(PANTRY_KEY),backup=`${PANTRY_KEY}-v1-backup`;
+    if(raw!==null&&storage.getItem(backup)===null)storage.setItem(backup,raw);
+  }
+  // A single localStorage write commits inventory and cooking records together.
+  storage.setItem(PANTRY_KEY,JSON.stringify({version:2,items,records,receipts:savedReceipts}));
 }
-export function savePantry(storage,items){if(!validItems(items))throw new Error('Invalid inventory');storage.setItem(PANTRY_KEY,JSON.stringify({version:1,items}));}
+export function savePantry(storage,items,{receipt}={}){
+  if(!validPantryItems(items))throw new Error('Invalid inventory');
+  const current=loadKitchen(storage);if(current.error)throw new Error('Unreadable kitchen data');
+  if(current.version===2||receipt){
+    if(receipt&&!validPurchaseReceipts([receipt]))throw new Error('Invalid receipt');
+    const receipts=receipt&&!current.receipts.some(r=>r.id===receipt.id)?[...current.receipts,receipt]:current.receipts;
+    saveKitchen(storage,items,current.records,receipts);
+  }
+  else storage.setItem(PANTRY_KEY,JSON.stringify({version:1,items}));
+}
 export function upsertPantry(items,item,{editing=false}={}){
-  if(!validItems(items)||!validPantryItem(item))throw new Error('Invalid ingredient');
+  if(!validPantryItems(items)||!validPantryItem(item))throw new Error('Invalid ingredient');
   if(editing&&!items.some(i=>i.id===item.id))throw new Error('Entry no longer exists');
   return items.some(i=>i.id===item.id)?items.map(i=>i.id===item.id?{...item}:i):[{...item},...items];
 }

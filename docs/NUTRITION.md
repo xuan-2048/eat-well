@@ -4,7 +4,7 @@ Status: planned, not implemented. Requested by the owner on 2026-11-08.
 
 ## Useful first slice
 
-Estimate a recipe's energy, protein, fat, carbohydrate and fiber per serving. Show ingredient contributions, data sources and incomplete data. Later, let a user record a meal and the consumed portion and aggregate daily intake.
+Estimate a recipe's energy, protein, fat, carbohydrate and fiber per serving. Show ingredient contributions, data sources and incomplete data. The cooking log already records consumed portions separately from portions made; use those entries to aggregate daily nutrient intake after recipe estimates are available.
 
 先做每道菜、每份的营养估算，再做实际吃了多少和每日汇总。维生素与矿物质、补充剂记录单独作为后续扩展，避免与基础菜谱功能同时铺开。
 
@@ -28,3 +28,8 @@ These links are candidates, not a completed API integration. Any comparison to r
 ## Acceptance checks for the future milestone
 
 Known recipe totals can be reproduced from source amounts; serving scaling is consistent; missing data is visible; raw/cooked mismatches and unsupported units are flagged; ingredient and reference sources can be inspected.
+
+
+## Later: choosing one dish
+
+The recommendation milestone follows recipe estimates and daily intake. It combines recorded intake with available ingredients, preferences, cooking time and optional city-level weather. Location, temperature, humidity, season and meal time are context for choosing a dish, not evidence of a nutrient deficiency. Incomplete meal records stay visible as incomplete; missing nutrient values are not zero. The full implementation checklist is in [ROADMAP.md](ROADMAP.md).

@@ -1,4 +1,4 @@
-import {foodIdentity,PANTRY_UNITS,LOCATIONS,loadPantry,savePantry,validPantryItem} from './pantry.js';
+import {foodIdentity,PANTRY_UNITS,LOCATIONS,loadKitchen,savePantry,validPantryItem} from './pantry.js';
 import {STATES} from './recipes.js';
 import {validDay} from './plans.js';
 import {canonicalAmount,requirementKey,roundAmount} from './shortages.js';
@@ -33,18 +33,19 @@ export function addManualShopping(items,entry,idFactory){
   if(existing)return items.map(i=>i.id===existing.id?{...i,unit:candidate.unit,amount:roundAmount(canonicalAmount(i.amount,i.unit).amount+candidate.amount)}:i);
   return [...items,candidate];
 }
-// Write pantry first, then the shopping receipt. A deterministic pantry ID makes
-// retrying after a quota error safe: it cannot add a second batch for the item.
+// Save stock and a durable receipt marker together before updating shopping.
+// Retries remain safe after the batch has been consumed or manually removed.
 export function receiveShopping(storage,id,details,now=new Date().toISOString()){
-  const shopping=loadShopping(storage),inventory=loadPantry(storage);
+  const shopping=loadShopping(storage),inventory=loadKitchen(storage);
   if(shopping.error||inventory.error)throw new Error('Unreadable data');
   const line=shopping.items.find(i=>i.id===id);if(!line||!line.bought)throw new Error('Mark purchased first');
   if(line.received)return {items:shopping.items,pantry:inventory.items};
   const item={id:`shopping:${id}`,name:details.name,...foodIdentity(details.name),amount:details.amount,unit:details.unit,location:details.location,date:details.date,state:details.state,createdAt:now,updatedAt:now};
   if(!validPantryItem(item)||!PANTRY_UNITS.includes(item.unit)||!LOCATIONS.includes(item.location)||!STATES.includes(item.state))throw new Error('Invalid inventory amount');
-  const stored=inventory.items.find(i=>i.id===item.id)??item;
-  const pantry=inventory.items.some(i=>i.id===item.id)?inventory.items:[item,...inventory.items];
-  savePantry(storage,pantry);
+  const marker=inventory.receipts.find(r=>r.id===id);
+  const stored=marker?.batch??inventory.items.find(i=>i.id===item.id)??item;
+  const pantry=marker||inventory.items.some(i=>i.id===item.id)?inventory.items:[item,...inventory.items];
+  savePantry(storage,pantry,{receipt:{id,batch:stored}});
   const items=shopping.items.map(i=>i.id===id?{...i,received:true,receipt:{name:stored.name,amount:stored.amount,unit:stored.unit,state:stored.state??'unspecified',location:stored.location,date:stored.date}}:i);saveShopping(storage,items);
   return {items,pantry};
 }

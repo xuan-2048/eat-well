@@ -12,17 +12,30 @@ Eat Well connects a personal recipe library with meal planning, fridge stock and
 | 6 | Selected-day ingredient check with compatible unit and preparation matching | Implemented |
 | 7 | Shopping list, purchased state and confirmed actual-quantity pantry receipt | Implemented |
 | 8 | Weekly menu, copying meals and selected-date shopping | Implemented |
-| 9 | Cooking records with actual portions, notes and photos | Planned |
-| 10 | Versioned export and restore | Planned |
+| 9 | Cooking records, actual intake, photos and confirmed stock use with undo | Implemented |
+| 10 | Versioned export and restore | Implemented |
 | 11 | Nutrition per recipe and serving | Planned |
 | 12 | Daily nutrition from actual intake | Planned |
-| 13 | Offline support and home-screen installation | Planned |
+| 13 | Context-aware dish suggestions using location, weather, time and intake | Planned |
+| 14 | Offline support and home-screen installation | Planned |
 
 ## Current milestone
 
-Step 8 adds a Monday-to-Sunday selector, previous/next week navigation, direct date selection, meal-copy previews and custom shopping date ranges. Copying preserves destination dishes and skips existing recipe IDs. Source and destination edits detected before copying require another review. Ingredient checks allocate stock once across the chosen range, and generated shopping entries retain their source dates. Existing daily menus and shopping entries remain compatible.
+Step 10 adds complete JSON exports, validated import previews and explicit full replacement. Current data and its recovery copy are committed in one storage envelope; a failed write changes neither. A recovery copy can be downloaded or restored, and imported cooking deductions and purchase receipt markers retain their behavior. Dropdown text and option spacing have also been reduced for a compact 14 px dropdown style.
 
 Validation includes automated model/persistence tests and English/Chinese browser checks at phone widths. README screenshots use the English interface with separate demo data and are displayed individually.
+
+## 推荐一道菜 · Recommendation to-do
+
+- [ ] 所在城市：允许手动设置城市；天气推荐只需要大致地区，不需要保存完整住址。
+- [ ] 天气与干燥程度：接入温度、相对湿度和天气更新时间，作为口感、冷热和汤水类偏好的参考；天气不可用时仍能推荐。
+- [ ] 时间：结合季节、当地时间、午餐或晚餐，以及用户这次有多少做饭时间；菜谱需要补充预计耗时。
+- [ ] 营养摄入：接入每份营养估算和做饭记录里实际吃的份数；标明记录是否完整，未记录的摄入保持未知。
+- [ ] 筛选候选：优先使用冰箱现有食材，结合喜欢的菜系、忌口和近期做过的菜；先从已保存菜谱中选择。
+- [ ] 一次推荐一道：展示菜名、预计耗时、已有/缺少的食材，以及一两条具体推荐理由；支持换一道、保存和主动加入菜单。
+- [ ] 数据不足时降级：先按食材、口味和时间推荐，不编造天气或营养信息。可以记录推荐是否被采用，用于后续调整规则。
+
+实现顺序：先完成每份营养和实际摄入汇总，再接上天气等情境信息。天气只影响烹饪与口味选择；不会据此诊断缺乏营养素或给出补充剂剂量。第一版用可解释的筛选与排序规则，不依赖生成式模型。
 
 ## Scope
 

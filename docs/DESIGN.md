@@ -26,3 +26,7 @@ Earlier references: [Mela](https://www.mela.recipes/) and [Paprika](https://www.
 ## Next feature
 
 Personal recipe library: add/edit/delete dishes, cuisine, ingredients, structured amounts and servings, plus want-to-cook/cooked status. Then choose dishes for today's or tomorrow's meals. Pantry matching and shopping follow this foundation. Recipe data must support the future nutrition plan.
+
+## Current visual details
+
+The mark uses the curved bowl and broad handle of a Chinese soup spoon, drawn with gently uneven tomato-red lines. An ivory spoon body sits on a pale apricot rounded square. A short inner curve suggests the bowl's depth, and the handle opening keeps the utensil recognizable at small sizes. The user's spoon sketch guided the shape; this project uses its own SVG paths. Recipe and ingredient sketches share fine outlines and restrained fills. Photo-free menu plates retain their ceramic rims, with the food sketch centered inside and the dish name below.

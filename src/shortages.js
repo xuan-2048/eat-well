@@ -19,7 +19,7 @@ export function buildShortages(plans,recipes,pantry,dates=[localDay()]){
   needs.sort((a,b)=>a.date.localeCompare(b.date)||(a.state==='unspecified'?1:0)-(b.state==='unspecified'?1:0));
   for(const need of needs){
     const group=requirementKey(need.key,need.unit,need.state);
-    if(!rows.has(group))rows.set(group,{id:group,key:need.key,foodId:need.foodId,name:need.name,unit:need.unit,state:need.state,required:need.amount===null?null:0,available:0,missing:null,reasons:[],sources:[]});
+    if(!rows.has(group))rows.set(group,{id:group,key:need.key,foodId:need.foodId,name:need.name,unit:need.unit,state:need.state,required:need.amount===null?null:0,available:0,missing:null,reasons:[],sources:[],allocations:[]});
     const row=rows.get(group);row.sources.push({date:need.date,planId:need.planId,recipeName:need.recipeName});
     if(need.amount===null){row.reasons.push('unmeasured');continue;}
     row.required=roundAmount(row.required+need.amount);
@@ -28,7 +28,7 @@ export function buildShortages(plans,recipes,pantry,dates=[localDay()]){
       if(item.date&&item.date<need.date){if(item.remaining>0)row.reasons.push('date');continue;}
       if(item.unit!==need.unit){if(item.remaining>0)row.reasons.push('unit');continue;}
       if(need.state!=='unspecified'&&inventoryState(item)!==need.state){if(item.remaining>0)row.reasons.push('state');continue;}
-      const used=Math.min(remaining,item.remaining);item.remaining=roundAmount(item.remaining-used);remaining=roundAmount(remaining-used);row.available=roundAmount(row.available+used);
+      const used=Math.min(remaining,item.remaining);if(used>0)row.allocations.push({batchId:item.id,amount:used,unit:item.unit});item.remaining=roundAmount(item.remaining-used);remaining=roundAmount(remaining-used);row.available=roundAmount(row.available+used);
       if(remaining<=0)break;
     }
   }

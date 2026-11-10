@@ -42,7 +42,7 @@ test('location/date filters compose with cross-language synonym search',()=>{
 test('corrupt or duplicate records are reported without overwriting; quota errors propagate',()=>{
   const store=memory();store.setItem(PANTRY_KEY,'bad');assert.equal(loadPantry(store).error,true);assert.equal(store.getItem(PANTRY_KEY),'bad');
   store.setItem(PANTRY_KEY,JSON.stringify({version:1,items:[item(),item()]}));assert.equal(loadPantry(store).error,true);
-  assert.throws(()=>savePantry({setItem(){throw new Error('quota');}},[item()]),/quota/);
+  assert.throws(()=>savePantry({getItem(){return null;},setItem(){throw new Error('quota');}},[item()]),/quota/);
 });
 test('bilingual pantry labels cover units, storage and the same messages',()=>{
   assert.deepEqual(Object.keys(pantryCopy.zh).sort(),Object.keys(pantryCopy.en).sort());

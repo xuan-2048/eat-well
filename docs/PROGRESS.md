@@ -111,3 +111,96 @@ Verification: 45 automated tests cover the previous workflow plus Monday-based w
 README updated for the weekly workflow and date-range rules. English menu, copy-preview, comparison and shopping screenshots are displayed individually at a larger width. Original localhost:8011 user records were not used for demo mutations.
 
 Submission checkpoint: the scheduled 2026-11-09 15:19:21 America/New_York commit/push did not complete. A follow-up status check found the remote still at base 7cb320979490d41e3daf2757d30cddea9fe568e6 and all milestone changes preserved locally. The original authorized submission is being completed after fresh validation, using the actual commit time. The obsolete one-time task will be deleted after a verified push. Cooking records, stock consumption, backups and nutrition remain planned.
+
+
+## 2026-11-09 · Cooking history and confirmed stock use (local review)
+
+Added Cooking log navigation and record actions beside menu dishes. Records can also start from saved recipes. Date and lunch/dinner filters, create/edit/detail/confirmed-delete, made portions, optional personal intake (unknown stays null; zero is valid), notes and compressed local photos are implemented. Snapshot copies retain original ingredient quantities and steps after source-recipe changes or deletion. Each planned dish links to at most one record; manual records do not infer plan links.
+
+Stock-use previews scale by servings made, allocate compatible batches once and show uncertain or unmeasured requirements. Actual-use fields stay in each batch's stored unit. A required acknowledgment confirms that blank/zero amounts are not deducted. Saving a record alone does not alter stock. Repeating a confirmed deduction is a no-op. Undo returns quantities to current compatible batches, recreates emptied batches, or restores a separate batch if identity/unit changed. Deleting a deducted record restores stock and removes the record in the same write. Made portions are locked while a deduction is applied; personal intake, notes and photos remain editable.
+
+Moved pure stock validation into pantry-data.js. Pantry and cooking history now share a validated version-2 envelope under the existing pantry key, making record/stock transitions one localStorage write. First migration backs up the exact version-1 pantry payload. A durable purchase-receipt marker remains after a stock batch is consumed or removed, preventing a failed shopping-receipt write from re-adding groceries on retry; ordinary pantry/cooking writes preserve these markers. The received shopping group now says Received in English to distinguish receipt history from current stock. Normal pantry writes and purchase receipts preserve history; corrupt data is not overwritten. Failed writes preserve both stock and record state. Recipe and cooking photo forms share photos.js compression. A versioned browser import map keeps the complete module graph on one preview revision, preventing mixed cached/new modules; the latest browser reload shows the Received shopping label and no console warnings/errors.
+
+Linked plans with cooking records are excluded from shopping requirements; deleting a record makes its plan pending again. Old meal-plan and shopping storage remain compatible. UI checks observed changes before saving; this remains local browser storage rather than a multi-user database.
+
+Validation: 61 automated tests pass, including migration/backup, immutable recipe snapshots, unknown versus zero intake, source-plan deduplication, stale edits, portion validation, cooked-based scaling, original-unit conversion, atomic failure/retry, overuse rejection, explicit incompatible-unit usage, undo after later stock changes, full-batch restoration, changed-unit restoration, deletion refunds, bilingual copy and pending-plan filtering. Existing recipe, menu, pantry and shopping tests also pass.
+
+Browser checks use only separate localhost:8013 demo data: log the three-serving tomato-and-eggs menu with personal intake 1.25; confirm 0.2 kg plus 250 g tomatoes and 3 eggs, reload and verify remaining stock; check shopping excludes that source plan; undo and verify the original batches/quantities return. Create a temporary backdated pasta dinner with unknown intake and a compressed photo, reload/filter it, explicitly confirm 0.1 pack garlic, cancel then confirm deletion and verify the stock refund. Temporary record/photo removed. Edit made/eaten portions while undone and verify 600 g/4-egg preview for four made portions; restore the sample to three made and 1.25 eaten. Another-tab record edit invalidates an open deduction preview; refreshing and confirming succeeds. Applied records expose a read-only made field and allow note corrections without another deduction. English/Chinese views, 320 px page/dialog widths and 390 px review screenshots checked with no console warnings/errors in tested flows.
+
+README includes the new workflow, storage details and English history/confirmation screenshots. The retained demo record is explicitly sample data, with confirmed deduction visible. Original localhost:8011 records were not mutated for tests. Current owner request: local work for review only; no commit, push or scheduled submission for this stage. Base remains f2e7a80aeedb89497bbdbf1a300027a047990f47.
+
+
+## 2026-11-09 · Consistent dropdown typography (local review)
+
+Replaced platform-rendered select popups with a shared select-only combobox presentation. Native select values, names and required validation remain available to the existing forms; the visible trigger and expanded options use the same UI font, 16 px size, normal weight and dark text. The popup follows the near-white/sage page styling and is shared by meal, cuisine, storage, unit and recipe controls. It handles dynamically rendered forms, disabled options, viewport placement and dialog top-layer placement.
+
+Browser checks: Chinese meal options match the trigger's computed font family/size/color; click, arrows, Enter, Escape cancellation and Tab commit/focus work. English cuisine typeahead selects Italian and filters recipes correctly. A required recipe selection blocks an empty cooking form and presents a visible error; selecting pasta and dinner saves the correct temporary record. Escape closes the dropdown while keeping its editor open. The temporary record was deleted from the separate demo origin. At 320 px, page and dialog scroll widths equal their client widths; no console warnings/errors in these flows. Keyboard and pointer behavior were checked; no screen-reader certification is claimed. All work remains local, with no commit or push.
+
+Next proposed milestone is versioned export and restore, including photos, a restore preview and a backup of current data before replacing it. Nutrition summaries remain after that milestone.
+
+
+## 2026-11-09 · Backup, restore and smaller dropdowns (local review)
+
+Implemented version-1 Eat Well JSON export and import with an allowlist of five app collections: recipes/photos, plans, shared pantry/cooking/receipt state, shopping and language. Files are checked before preview, with collection/photo counts, missing-recipe warnings, a required replacement acknowledgment and a 20 MB file limit. Import replaces the complete set. A stale preview is rejected if observed data changed. Recovery data can be previewed, downloaded or restored; the current data then becomes the next recovery copy.
+
+A legacy-compatible storage adapter reads existing individual keys until the first restore. Restore commits all target values and the exact preceding values in one localStorage envelope. A quota/write failure leaves both current data and recovery unchanged. Subsequent model writes preserve the recovery and other collections. Legacy-key cleanup happens only after the atomic write and is optional. Updated app tabs reload on a new restore generation; ordinary collection writes refresh their data. This is local browser storage, not multi-user transaction isolation. Recovery consumes additional space and is removed with browser data; downloaded files remain the portable backup.
+
+Validation: 75 automated tests pass, including complete photo/ledger/receipt roundtrips, undo after import, atomic write failure, exact recovery swaps, invalid nested data, duplicate IDs, file/version limits, legacy payload migration, corrupt-data preservation and independent adapter reads. Browser checks on localhost:8013 downloaded a real JSON file, rejected an invalid version, previewed replacement with empty data, blocked confirmation without acknowledgment, restored and reloaded, then recovered all original counts and language. Remaining inventory stayed 250 g tomatoes, 3 eggs and 1 pack garlic. No console warnings/errors in those flows. English backup screenshot added to README individually at width 480.
+
+Dropdown triggers and options are now 14 px, with smaller option padding; browser-computed sizes match. At 320 px, backup dialogs and pages have no horizontal overflow. The original localhost:8011 data was not used for restore tests. No commit, push or scheduled submission.
+
+## 2026-11-09 · Horizontal meal browsing (local review)
+
+Each lunch/dinner now has a horizontal dish row with native touch/trackpad scrolling, snap alignment, overflow-aware previous/next controls and keyboard arrows/Home/End. The All control switches a meal to an overview grid; Row returns to scrolling. Dish counts are visible, lunch and dinner stay separate, and empty meals retain their add action. Reduced-motion preferences disable smooth scrolling. Controls update after scrolling and resizing; the view choice survives page renders within the session.
+
+Browser validation used a third sample Tomato soup recipe added only to the separate demo origin. A three-dish lunch overflowed only its own row (436 px content in a 326 px row at 390 px viewport); next moved to the end and updated disabled controls. All showed all three cards in a grid. Both views stayed within a 320 px page. The added sample also verified normal recipe and plan saves after restoration. An English screenshot was added to README. Original user data remains unchanged; all changes remain uncommitted.
+
+
+Future scope requested: added a recommendation checklist covering city-level location, weather temperature/humidity, season and meal timing, available cooking time, actual recorded nutrient intake, pantry stock, preferences and dietary exclusions. The proposed UI offers one dish with reasons, missing ingredients, another suggestion and an explicit add-to-menu action. Planned after nutrition estimates and daily totals; no weather API, location collection or recommendation engine was implemented in this milestone.
+
+
+## 2026-11-09 · Photo framing and online recipe examples (local review)
+
+Recipe and cooking photo uploads now open a circular plate crop editor with dragging, slider/pinch zoom, keyboard/button movement, reset, apply and cancel. Applying updates the form draft; saving the form persists a square crop plus its compressed original and normalized framing, allowing later zoom-out/repositioning. Bounded inline JPEG sources and frame coordinates are validated. Cooking snapshots strip photo-edit sources to avoid duplicating recipe originals; actual record photos retain their own editable source. A replaced catalog photo drops the old image attribution while retaining its cooking reference.
+
+Added six opt-in bilingual recipe examples with structured quantities and adapted steps. All photos are bundled locally from Wikimedia Commons; author/uploader, source page, license and crop/resize notice appear in saved recipe details and assets/recipes/CREDITS.md. Cooking references are documented in RECIPE_CATALOG.md. Photos are illustrative and not claimed to be the exact source recipe's result. Save-all reads fresh data after processing photos and skips existing catalog IDs. Save failures do not write a partial set.
+
+Browser checks: demo bulk-save adds all six, saved controls disable duplicate imports, source/author/license links render, and photo edits retain the 1.60× zoom after save/reload/reopen. Canceling a changed crop returns to the original frame. Pointer movement, arrow controls and square preview geometry were checked; no console warnings/errors in tested flows. English editor and catalog screenshots were added individually to README. Geometry, frame persistence, source URL and bilingual catalog tests supplement the existing suite.
+
+The user explicitly asked to see the examples in their own local app. Six examples were added through the UI to localhost:8011, preserving the original recipe (seven total). Their supplied tomato-and-eggs photo was cropped at 1.60× and saved to the existing recipe; after reload, both existing planned plates display it. The supplied private photo and its proof screenshot are not added to repository assets. No plans, pantry quantities or cooking records were changed on that origin. No commit or push.
+
+
+## 2026-11-09 · Plate choices and photo removal (local review)
+
+Added four locally saved ceramic styles: porcelain, sage rim, soft blue rim and fluted ivory. The header control previews all four; selection updates menu plates and photo framing. Backup version 2 includes the plate preference, accepts old version-1 files with a default style, and normalizes older atomic envelopes without discarding active data or recovery copies. At 320 px the picker dialog and page have no horizontal overflow; styles switch and persist after reload.
+
+The user then reduced photo replacement to a single image and ultimately requested all photos be removed. Final state: no preset food photos or image downloads are bundled; the six recipe examples retain text and source links only. The plate picker uses a small code-drawn sprig rather than a food photograph. Photo upload/framing remains available for future voluntary use.
+
+Added a recoverable Clear all photos action. It removes recipe/record photos, compressed editing originals and snapshot photos while preserving text, plans, inventory, shopping and appearance. Affected cooking revisions advance to invalidate stale edits; confirmed stock ledgers remain unchanged. The full preceding state is kept as the normal local recovery copy in the same atomic write. Failed writes leave images untouched; repeating an already-complete clear does not overwrite the recovery copy.
+
+On localhost:8011, the authorized clear completed and reload showed 7 recipes, 2 planned dishes and 0 current photos. Sage plate style remained selected. Downloaded food images and photographic editor/catalog screenshots were removed from the project. Private supplied originals outside the app were not modified. Validation: 86 tests pass, including photo removal/recovery, quota failure, appearance roundtrips and old backup/envelope compatibility. All changes remain local; no commit or push.
+
+
+## 2026-11-09 · Plain plates without initials (local review)
+
+Photo-free planned dishes now show a plain ceramic well with a subtle glaze highlight. The recipe name and servings remain below the plate, and the existing accessible button label still identifies the dish. The four selected rim styles remain visible. Missing-recipe warnings retain their warning symbol. No recipe or menu data was changed. Commit/push remains stopped after the user's request to wait.
+
+
+## 2026-11-09 · Matched food sketches (local review)
+
+Added an original set of eight inline SVG sketches: eggs, pasta, rice, tofu, vegetables, soup, wraps and a neutral herb motif. Fine gray-green strokes and pale cream, sage and terracotta fills match the existing ceramic styles. Photo-free menu plates, library thumbnails, recipe-picker choices, cooking-history cards and example tiles share the drawings. Existing photo rendering still takes precedence.
+
+Matching uses normalized Chinese/English recipe names, then leading ingredient names. Dish-type rules take priority, so egg fried rice uses rice and egg soup uses soup. English boundaries avoid matching eggplant as egg. Unknown dishes get the neutral motif. The SVG markup is static trusted code; recipe strings are not interpolated into it. This is category matching rather than per-recipe AI generation; no recipe or plan data is modified.
+
+Validation: 90 tests pass, including bilingual example matches, category precedence, unknown/custom names, no data mutation and safe SVG output. Browser checks on localhost:8011 show eggs/pasta/tofu for the user's three lunch dishes and sketches for all seven saved recipes, with zero current food photos. At 320 px the gallery/page have no horizontal overflow; checked flows show no console warnings/errors. English menu and gallery screenshots were refreshed using the separate demo origin, whose old sample photos were also cleared. No commit or push.
+
+
+## 2026-11-09 · README, pantry sketches and warm spoon mark
+
+Fridge entries now use ingredient sketches through the existing food identity dictionary, including distinct tomato, whole/halved egg and garlic drawings. All 22 known ingredients have a matching illustration or appropriate shared motif, with neutral art for custom entries. Quantities, dates, stock and aliases are unchanged.
+
+Redesigned the mark as a spoon with a filled tomato-red bowl, concave highlight and tapered warm handle over a porcelain plate. The final logo uses ivory, tomato red and terracotta without green. Header and favicon assets share the updated version.
+
+README now has a short project description, feature list, setup/check commands and two complete English page screenshots: weekly menu and fridge. Detailed workflows and persistence notes moved to USAGE.md and ARCHITECTURE.md. Screenshots are captured from separate demo data without open dialogs or cropped controls. Added ingredient-alias and safe-markup checks; the full suite has 92 passing tests. The user authorized one combined commit and push after these changes.
+
+The final logo was refined from the user's spoon-sketch reference into an original Chinese soup-spoon outline: ivory body, tomato-red hand-drawn contours and pale apricot background. The broad curved bowl, inner depth line and handle opening replace the earlier oval-spoon design.

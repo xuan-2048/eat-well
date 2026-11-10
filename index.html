@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#FAFBFC">
   <meta name="description" content="Bilingual pantry, recipes and meal planning.">
   <title>好好吃饭 · Eat Well</title>
-  <link rel="icon" href="./mark.svg?v=2" type="image/svg+xml">
-  <link rel="stylesheet" href="./src/styles.css?v=20261109-week-final">
+  <link rel="icon" href="./mark.svg?v=soup-spoon-5" type="image/svg+xml">
+  <link rel="stylesheet" href="./src/styles.css?v=20261109-soup-spoon">
 </head>
 <body>
   <div id="app"></div>
@@ -18,8 +18,54 @@
   <dialog id="pantry-editor"></dialog>
   <dialog id="pantry-delete"></dialog>
   <dialog id="workflow-dialog"></dialog>
+  <dialog id="cooking-editor"></dialog>
+  <dialog id="cooking-detail"></dialog>
+  <dialog id="cooking-use"></dialog>
+  <dialog id="cooking-action"></dialog>
+  <dialog id="plate-dialog" aria-labelledby="plate-title"></dialog>
+  <dialog id="catalog-dialog" aria-labelledby="catalog-title"></dialog>
+  <dialog id="photo-editor" aria-labelledby="photo-editor-title"></dialog>
+  <dialog id="backup-dialog" aria-labelledby="backup-title"></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <noscript>请启用 JavaScript 查看应用。 Enable JavaScript to view the app.</noscript>
-  <script type="module" src="./src/app.js?v=20261109-week-final"></script>
+  <!-- Version the whole module graph so preview refreshes load matching source files. -->
+  <script type="importmap">
+{
+  "imports": {
+    "./src/backup-copy.js": "./src/backup-copy.js?v=20261109-soup-spoon",
+    "./src/backup-ui.js": "./src/backup-ui.js?v=20261109-soup-spoon",
+    "./src/backup.js": "./src/backup.js?v=20261109-soup-spoon",
+    "./src/catalog-ui.js": "./src/catalog-ui.js?v=20261109-soup-spoon",
+    "./src/catalog.js": "./src/catalog.js?v=20261109-soup-spoon",
+    "./src/cooking-copy.js": "./src/cooking-copy.js?v=20261109-soup-spoon",
+    "./src/cooking-data.js": "./src/cooking-data.js?v=20261109-soup-spoon",
+    "./src/cooking-ui.js": "./src/cooking-ui.js?v=20261109-soup-spoon",
+    "./src/cooking.js": "./src/cooking.js?v=20261109-soup-spoon",
+    "./src/copy.js": "./src/copy.js?v=20261109-soup-spoon",
+    "./src/dish-art.js": "./src/dish-art.js?v=20261109-soup-spoon",
+    "./src/foods.js": "./src/foods.js?v=20261109-soup-spoon",
+    "./src/menu-ui.js": "./src/menu-ui.js?v=20261109-soup-spoon",
+    "./src/pantry-copy.js": "./src/pantry-copy.js?v=20261109-soup-spoon",
+    "./src/pantry-data.js": "./src/pantry-data.js?v=20261109-soup-spoon",
+    "./src/pantry.js": "./src/pantry.js?v=20261109-soup-spoon",
+    "./src/photo-editor.js": "./src/photo-editor.js?v=20261109-soup-spoon",
+    "./src/photo-frame.js": "./src/photo-frame.js?v=20261109-soup-spoon",
+    "./src/photos.js": "./src/photos.js?v=20261109-soup-spoon",
+    "./src/plan-copy.js": "./src/plan-copy.js?v=20261109-soup-spoon",
+    "./src/plans.js": "./src/plans.js?v=20261109-soup-spoon",
+    "./src/plate-data.js": "./src/plate-data.js?v=20261109-soup-spoon",
+    "./src/plate-ui.js": "./src/plate-ui.js?v=20261109-soup-spoon",
+    "./src/recipe-copy.js": "./src/recipe-copy.js?v=20261109-soup-spoon",
+    "./src/recipes.js": "./src/recipes.js?v=20261109-soup-spoon",
+    "./src/select-ui.js": "./src/select-ui.js?v=20261109-soup-spoon",
+    "./src/shopping.js": "./src/shopping.js?v=20261109-soup-spoon",
+    "./src/shortages.js": "./src/shortages.js?v=20261109-soup-spoon",
+    "./src/storage.js": "./src/storage.js?v=20261109-soup-spoon",
+    "./src/week-copy.js": "./src/week-copy.js?v=20261109-soup-spoon",
+    "./src/workflow-copy.js": "./src/workflow-copy.js?v=20261109-soup-spoon"
+  }
+}
+  </script>
+  <script type="module" src="./src/app.js?v=20261109-soup-spoon"></script>
 </body>
 </html>
