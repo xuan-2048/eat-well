@@ -1,6 +1,6 @@
 # Nutrition estimates
 
-Recipe details show calories (kcal), protein, total carbohydrate, fat and fiber (g). Choose **Per serving**, **Whole recipe** or **Selected servings**. The last option follows the serving input above the ingredient list. Daily intake totals and AI suggestions are not implemented yet.
+Recipe details show calories (kcal), protein, total carbohydrate, fat and fiber (g). Choose **Per serving**, **Whole recipe** or **Selected servings**. The last option follows the serving input above the ingredient list. **Cooking log → Daily nutrition** totals actual intake by date and meal. AI suggestions are not implemented yet.
 
 菜谱详情支持每份、整道菜和所选份数的营养估算。展开“查看食材与计算依据”可以补充重量、调整参考食物，或检查每项食材贡献了多少。
 
@@ -46,4 +46,10 @@ Saved references stay on the recipe and travel with JSON backups and new cooking
 
 Reference varieties, brands and preparation methods differ. These are ingredient-based estimates: cooking retention, discarded liquid, absorbed oil and changes in water content are not modeled. Enter the oil actually used and retained when that amount is known. The app does not estimate nutrient deficiency, supplement doses or personalized intake targets.
 
-The next nutrition milestone can sum actual eaten portions from cooking records, retaining their historical recipe snapshots and visibly incomplete data. Recommendation work follows that. Optional weather describes cooking context; it is not evidence of a nutritional deficiency. See [the roadmap](ROADMAP.md).
+The daily view sums actual eaten portions from cooking records. It never uses planned or made portions as a substitute for eaten portions. Empty days have no estimate; unknown intake produces dashes. An explicitly entered zero produces zero even if the recipe lacks nutritional detail. Otherwise, partial ingredients and missing source nutrients contribute only their known values, with per-nutrient coverage and incomplete-data messages.
+
+New cooking records store an optional version-1 `nutritionBasis`: per-serving values, ingredient coverage, source data version, signature of the recipe quantities/reference choices and capture time. Later edits to the recipe library or source dataset do not change those numbers. Editing the record’s eaten portions scales that saved basis; changing its date moves the contribution to that date. Stock, photo and note operations preserve the basis. JSON backups validate and retain it without changing the backup or kitchen payload version.
+
+Older records without a basis remain readable and are not rewritten during load or ordinary edits. Their saved recipe snapshot is estimated using the bundled reference version and is labelled accordingly; later recipe-library edits are never pulled into history. Data is incomplete if that saved recipe has unresolved weights or references. The daily view only describes lunch and dinner recorded in this app; it does not assert that every meal or snack has been logged.
+
+Recommendation work follows this milestone. Optional weather describes cooking context; it is not evidence of a nutritional deficiency. See [the roadmap](ROADMAP.md).

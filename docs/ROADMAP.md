@@ -14,16 +14,16 @@ Eat Well connects a personal recipe library with meal planning, fridge stock and
 | 8 | Weekly menu, copying meals and selected-date shopping | Implemented |
 | 9 | Cooking records, actual intake, photos and confirmed stock use with undo | Implemented |
 | 10 | Versioned export and restore | Implemented |
-| 11 | Nutrition per recipe and serving | Implemented locally |
-| 11a | React/TypeScript nutrition view, separate API and shared calculation rules | Implemented locally |
+| 11 | Nutrition per recipe and serving | Implemented |
+| 11a | React/TypeScript nutrition view, separate API and shared calculation rules | Implemented |
 | 11b | Move remaining page rendering and forms into React/TypeScript | Planned |
-| 12 | Daily nutrition from actual intake | Planned |
+| 12 | Daily nutrition from actual intake and React cooking-history page | Implemented |
 | 13 | Context-aware dish suggestions using location, weather, time and intake | Planned |
 | 14 | Offline support and home-screen installation | Planned |
 
 ## Current milestone
 
-Step 11 adds recipe nutrition estimates using 42 USDA SR Legacy reference foods. Per-serving, whole-recipe and selected-serving views show five nutrients, ingredient contributions and data sources. Missing weights and uncertain matches stay visible. Confirmed edible weights persist with recipes and backups; ingredient changes invalidate stale references.
+Step 12 adds daily totals from actual eaten portions, expandable meal/dish contributions, incomplete-data coverage and versioned historical nutrition estimates. The cooking-history page, view switch and filters are React/TypeScript; existing record, photo and stock dialogs remain behind the compatibility adapter. Empty, unknown and explicitly zero intake stay distinct. Existing records, storage keys and backup versions remain compatible.
 
 Validation includes automated model/persistence tests and English/Chinese browser checks at phone widths. README screenshots use the English interface with separate demo data and are displayed individually.
 

@@ -1,3 +1,4 @@
+import {validNutritionBasis} from '../shared/nutrition-basis.js';
 import {validPhotoEdit} from './photo-frame.js';
 import {validRecipe} from './recipes.js';
 import {MEALS,validDay} from './plans.js';
@@ -18,7 +19,7 @@ function validStock(stock){
 }
 export function validCookingRecord(r){
   return Boolean(r&&text(r.id,64)&&(r.sourcePlanId===null||text(r.sourcePlanId,150))&&validDay(r.date)&&MEALS.includes(r.meal)
-    &&validRecipe(r.recipeSnapshot)&&portion(r.cookedServings)
+    &&validRecipe(r.recipeSnapshot)&&(r.nutritionBasis===undefined||validNutritionBasis(r.nutritionBasis,r.recipeSnapshot))&&portion(r.cookedServings)
     &&(r.eatenServings===null||typeof r.eatenServings==='number'&&Number.isFinite(r.eatenServings)&&r.eatenServings>=0&&r.eatenServings<=r.cookedServings&&Number.isInteger(r.eatenServings*4))
     &&typeof r.notes==='string'&&r.notes.length<=2000&&validCookingPhoto(r.photo)
     &&(r.photoEdit===undefined||r.photoEdit===null||r.photo!==''&&validPhotoEdit(r.photoEdit))

@@ -72,6 +72,7 @@ const icons={
 };
 const icon=id=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[id]}</svg>`;
 function render(){
+  cookingUI.unmount();
   cookingUI.sync();
   applyPlateStyle(storage);
   if(location.hash!==`#${page}`)history.replaceState(null,'',`#${page}`);
@@ -94,6 +95,7 @@ function render(){
     </main>
     <nav aria-label="${c.nav}">${nav.map(([id,label])=>`<button type="button" data-page="${id}" ${page===id?'aria-current="page"':''}>${icon(id)}<span>${label}</span></button>`).join('')}</nav></div>`;
   syncMealCarousels(app);
+  if(page==='history')cookingUI.mount(document.getElementById('cooking-page'));
 }
 document.addEventListener('click',event=>{
   const target=event.target.closest('[data-language],[data-page],[data-library],[data-recipe-tab]' );

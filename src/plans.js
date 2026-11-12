@@ -1,17 +1,6 @@
 export const PLAN_KEY='eat-well-meal-plans-v1';
-export const MEALS=['lunch','dinner'];
-export function localDay(date=new Date()){
-  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-}
-export function validDay(value){
-  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
-  const [y,m,d]=value.split('-').map(Number);if(y<1000)return false;
-  const date=new Date(Date.UTC(y,m-1,d));return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d;
-}
-export function followingDay(day){
-  if(!validDay(day))throw new Error('Invalid date');
-  const [y,m,d]=day.split('-').map(Number);return new Date(Date.UTC(y,m-1,d+1)).toISOString().slice(0,10);
-}
+import {MEALS,localDay,validDay,followingDay} from '../shared/dates.js';
+export {MEALS,localDay,validDay,followingDay} from '../shared/dates.js';
 const legacyValid=p=>Boolean(p&&validDay(p.date)&&MEALS.includes(p.meal)&&typeof p.recipeId==='string'&&p.recipeId.trim().length>0&&p.recipeId.length<=100&&typeof p.servings==='number'&&Number.isFinite(p.servings)&&p.servings>=0.25&&p.servings<=100&&Number.isInteger(p.servings*4));
 export function validPlan(plan){return legacyValid(plan)&&typeof plan.id==='string'&&plan.id.trim().length>0&&plan.id.length<=150;}
 function validCollection(plans){return Array.isArray(plans)&&plans.every(validPlan)&&new Set(plans.map(p=>p.id)).size===plans.length;}

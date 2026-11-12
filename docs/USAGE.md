@@ -57,6 +57,14 @@ Saving a cooking record leaves stock unchanged. **Review stock use** previews in
 
 Menu assignments with cooking records are excluded from shopping checks. Copies of those meals remain independent plans. Deleting a linked cooking record makes its original plan pending again.
 
+## Daily nutrition
+
+Open **Cooking log → Daily nutrition**. Choose a date with the arrows or date field; **Today** returns to the current local date. The card shows calories, protein, carbs, fat and fiber from the servings you actually ate. For example, 1.5 servings of a 98.5 kcal-per-serving estimate contributes 147.75 kcal, displayed as 147.8 kcal. If that recipe still has unweighed ingredients, this remains a partial subtotal.
+
+Expand Lunch or Dinner for the meal subtotal and each dish’s contribution. **View record** opens the existing detail/editor so you can correct eaten portions or the cooking date. Saving refreshes the selected date’s summary. The **Cooking records** tab keeps the full history list and date/meal filters.
+
+An empty eaten-portions field stays unknown; zero explicitly records that none was eaten. Missing values are excluded, not replaced with zero. Empty days and meals show no records. The summary covers only lunch and dinner logged here. New records retain their original per-serving nutrition estimate; older records use their saved recipe and are labelled as such. Updating the source recipe does not update past records.
+
 ## Framing a photo
 
 Uploading a recipe or cooking photo opens a circular plate preview. Drag the image, pinch or use the zoom slider to choose the part you want to show. Arrow buttons and keyboard arrows can move it too. **Use photo** applies the crop to the open form; save that form to keep it. Canceling the crop keeps the previous photo.

@@ -1,6 +1,6 @@
 # Code and data
 
-The frontend and API run as separate processes. Vite serves and builds the browser app. The nutrition estimate panel is a React/TypeScript component; the other screens and the reference editor still use the existing JavaScript modules. This is an incremental migration, with compatible entry points for existing cooking, shopping and backup code.
+The frontend and API run as separate processes. Vite serves and builds the browser app. The nutrition estimate panel and cooking-history/daily-intake page are React/TypeScript components; other screens and the existing recipe/record dialogs still use JavaScript modules. This is an incremental migration, with compatible entry points for existing cooking, shopping and backup code.
 
 ```text
 src/
@@ -10,6 +10,8 @@ src/
     NutritionPanel.tsx          React panel and ingredient/source components
     index.tsx                   Adapter between recipe dialogs and the React root
     reference-dialog.js         Existing weight editor during migration
+  features/cooking/             React history, date filters and daily nutrition
+  repositories/cooking.js       Cooking collection reads
   api/nutrition-client.ts       Typed HTTP client, cancellation and local fallback
   repositories/recipes.js       Validated recipe reads and writes
   services/nutrition.js         Fresh-read/save orchestration for manual references
@@ -21,6 +23,9 @@ shared/
   nutrition.js                  Matching, arithmetic and pure reference updates
   nutrition-data.js             Generated USDA snapshot and provenance
   nutrition-settings.js         Stored-reference validation and signatures
+  daily-nutrition.ts            Actual-intake aggregation by date and meal
+  nutrition-basis.js            Frozen per-serving estimates and validation
+  dates.js                      Shared local/calendar date helpers
   contracts.ts                  Request, response and component data types
   nutrition-response.ts         Runtime response validation
   photo-validation.js           Shared photo metadata validation
@@ -73,3 +78,11 @@ Existing single-dish menus load into the multiple-dish format without changing d
 Cooking records and pantry batches share the version-2 pantry payload. Stock deductions, undo and record changes use one localStorage write. Receipt markers prevent a retried purchase from adding groceries twice, even after a batch has been consumed. Failed writes preserve the preceding state.
 
 After a full restore, the storage adapter writes all active collections and their recovery copy in one envelope, `eat-well-data-v1`. Ordinary writes retain other collections and recovery data. Older individual keys remain readable until the first restore succeeds.
+
+## Cooking history and daily intake
+
+The cooking adapter unmounts its React root before the legacy shell replaces page DOM. It keeps selected dates, tabs and filters across ordinary refreshes. Existing record, crop and stock dialogs still call the tested cooking operations. View changes do not write browser data.
+
+Daily aggregation runs locally over validated cooking records and never consults current recipe-library entries. New records capture a compact per-serving nutrition basis in the same kitchen write as the record. The signature covers recipe yield, ingredient quantities/preparation and confirmed nutrition references. Subsequent portion/date/note edits and stock operations preserve it. Older records without the optional basis stay readable and use their saved recipe, with an explicit legacy-source note. Neither record reads nor daily summaries migrate or rewrite data.
+
+Daily and meal subtotals preserve nulls, distinguish zero portions from unknown portions, and expose per-nutrient coverage. Only records on the selected calendar date are included. No extra API endpoint or personal intake upload is needed for these local summaries.

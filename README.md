@@ -2,7 +2,7 @@
 
 # Eat Well · 好好吃饭
 
-A cooking planner for phone browsers, with a React/TypeScript nutrition view and a Node.js API. Other screens use JavaScript modules while they are migrated. Save recipes, plan meals, check your fridge and turn missing ingredients into a shopping list.
+A cooking planner for phone browsers, with React/TypeScript nutrition and cooking-history views and a Node.js API. Other screens use JavaScript modules while they are migrated. Save recipes, plan meals, check your fridge and turn missing ingredients into a shopping list.
 
 一个支持中英文的做饭小工具：保存菜谱、安排菜单、管理冰箱库存、整理购物清单，记录实际做了什么和吃了多少。
 
@@ -12,7 +12,7 @@ A cooking planner for phone browsers, with a React/TypeScript nutrition view and
 - **Meal planning:** daily and weekly views, several dishes per meal, separate serving counts and copying a meal to another date. Swipe through dishes or expand the whole meal.
 - **Fridge:** stock batches with quantities, units, preparation states, storage locations and optional dates. Common Chinese and English ingredient names share the same identity.
 - **Shopping:** check planned dishes against stock, combine shortages and confirm the actual amount bought before adding groceries to the fridge.
-- **Cooking log:** keep servings made separate from servings eaten. Review stock use before deducting it; deductions can be undone.
+- **Cooking log:** daily nutrition totals and expandable meal details use the servings actually eaten. New records preserve their nutrition estimate; missing quantities remain visible. Keep servings made separate from servings eaten. Review stock use before deducting it; deductions can be undone.
 - **Nutrition:** estimate calories, protein, carbs, fat and fiber per serving or for the whole recipe. Check ingredient contributions and confirm missing edible weights. Uses a local USDA reference dataset; no API key is needed.
 - **Appearance:** Chinese/English interface, four ceramic plate styles, and matching SVG sketches for dishes and fridge ingredients.
 - **Backups:** export JSON, preview an import and recover the data from before the last replacement. Photos can be cleared without removing recipes or menus.
@@ -32,6 +32,12 @@ Choose a day, arrange lunch and dinner, and check the ingredients needed for the
 Each ingredient batch keeps its own quantity, unit and storage details.
 
 <a href="docs/images/pantry.jpg"><img src="docs/images/pantry.jpg" width="390" alt="Fridge inventory showing tomato, egg and garlic sketches beside their stock quantities"></a>
+
+### Daily nutrition
+
+Actual eaten portions, meal subtotals and visible gaps in ingredient data.
+
+<a href="docs/images/daily-nutrition.jpg"><img src="docs/images/daily-nutrition.jpg" width="390" alt="Daily recorded nutrition with partial values and expandable lunch and dinner totals"></a>
 
 ## Run locally
 
@@ -56,7 +62,7 @@ Data is saved in the current browser with `localStorage`. There is no account sy
 
 Ingredient checks convert g/kg and ml/L. They do not guess the weight of a piece or pack, convert volume to weight, or treat an unmeasured ingredient as zero. Incompatible units and preparation states are shown for review. Entered food dates are reminders, not food-safety assessments.
 
-Planned servings do not count as actual intake. Cooking records keep a recipe snapshot and use the portions actually entered. Stock changes only after confirmation.
+Planned servings do not count as actual intake. Cooking records keep a recipe snapshot and use the portions actually entered. The daily summary covers only logged lunch and dinner; an empty intake field is unknown, while zero means nothing was eaten. New records pin the per-serving nutrient values and their source version, so later recipe or reference-data changes do not rewrite those estimates. Stock changes only after confirmation.
 
 Nutrition uses 42 reference foods from USDA FoodData Central’s April 2018 SR Legacy release. Only matched ingredients with a usable edible weight are included. Partial results are labelled as known subtotals; unweighed oil, unmatched ingredients and missing source values are not zero. You can inspect the reference food and its values per 100 g, or choose another reference and enter a weight. See [nutrition data and calculations](docs/NUTRITION.md) for the method and limitations.
 
@@ -74,7 +80,6 @@ Tests cover recipe validation, meal planning, quantity scaling, ingredient match
 
 ## Next
 
-- Daily nutrition totals from recorded intake.
 - Move the remaining page rendering and forms into React/TypeScript components, then add AI features through the backend.
 - Dish suggestions using available ingredients, preferences, cooking time and optional weather information.
 - Offline support and home-screen installation.

@@ -52,3 +52,9 @@ export interface NutritionEstimate {
 export interface NutritionRequest {version: 1; recipe: NutritionRecipe; servings: number}
 export interface NutritionResponse {version: 1; dataVersion: string; result: NutritionEstimate}
 export interface EstimateResult {result: NutritionEstimate; via: 'server' | 'local'}
+
+export interface NutritionBasis {
+  version: 1; dataVersion: string; capturedAt: string; signature: string;
+  perServing: NutrientValues; coverage: Record<Nutrient,number>;
+  ingredientCount: number; includedIngredients: number; complete: boolean;
+}

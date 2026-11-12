@@ -1,9 +1,12 @@
+import {validRecipe} from '../shared/recipes.js';
+import {captureNutritionBasis} from '../shared/nutrition-basis.js';
+import {loadCooking} from './repositories/cooking.js';
+export {loadCooking} from './repositories/cooking.js';
 import {loadKitchen,saveKitchen,foodIdentity} from './pantry.js';
 import {localDay} from './plans.js';
 import {buildShortages,canonicalAmount,roundAmount} from './shortages.js';
 import {validCookingRecord,validCookingRecords} from './cooking-data.js';
 export {validCookingRecord,validCookingRecords} from './cooking-data.js';
-export function loadCooking(storage){const data=loadKitchen(storage);return {records:data.records,error:data.error};}
 function kitchen(storage){const data=loadKitchen(storage);if(data.error)throw new Error('Unreadable kitchen data');return data;}
 function findRecord(data,id){const record=data.records.find(r=>r.id===id);if(!record)throw new Error('Record removed');return record;}
 function checkRevision(record,revision){if(record.revision!==revision)throw new Error('Record changed');}
@@ -12,8 +15,10 @@ export function saveCookingRecord(storage,draft,{expectedRevision=null,now=new D
   if(old)checkRevision(old,expectedRevision);else if(expectedRevision!==null)throw new Error('Record removed');
   if(old?.stock.status==='applied'&&draft.cookedServings!==old.cookedServings)throw new Error('Undo first');
   const snapshot=old?.recipeSnapshot??structuredClone({...draft.recipeSnapshot,photo:'',photoEdit:null});
+  if(!validRecipe(snapshot))throw new Error('Invalid record');
   const record={id:draft.id,sourcePlanId:old?old.sourcePlanId:draft.sourcePlanId??null,date:draft.date,meal:draft.meal,
     recipeSnapshot:snapshot,cookedServings:draft.cookedServings,eatenServings:draft.eatenServings,notes:draft.notes,photo:draft.photo,photoEdit:draft.photoEdit??null,
+    ...(old?(old.nutritionBasis?{nutritionBasis:old.nutritionBasis}:{}):{nutritionBasis:captureNutritionBasis(snapshot,now)}),
     stock:old?.stock??{status:'none'},revision:(old?.revision??0)+1,createdAt:old?.createdAt??now,updatedAt:now};
   if(!validCookingRecord(record)||record.date>localDay(new Date(now)))throw new Error('Invalid record');
   if(data.records.some(r=>r.id!==record.id&&record.sourcePlanId!==null&&r.sourcePlanId===record.sourcePlanId))throw new Error('Already recorded');
