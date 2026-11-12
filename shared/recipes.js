@@ -25,6 +25,7 @@ export function validNutritionRecipe(r){
 
 export function validRecipe(r){
   return Boolean(r && text(r.id,100) && text(r.name,100) && CUISINES.includes(r.cuisine)
+    && (r.cookMinutes===undefined||r.cookMinutes===null||Number.isInteger(r.cookMinutes)&&r.cookMinutes>=1&&r.cookMinutes<=1440)
     && validNutritionRecipe(r)
     && typeof r.wanted==='boolean' && typeof r.cooked==='boolean'
     && Array.isArray(r.steps) && r.steps.length>=1 && r.steps.length<=100 && r.steps.every(s=>text(s,2000))

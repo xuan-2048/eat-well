@@ -4,7 +4,7 @@ import {validDay} from './plans.js';
 import {canonicalAmount,requirementKey,roundAmount} from './shortages.js';
 export const SHOPPING_KEY='eat-well-shopping-v1';
 export const SHOPPING_UNITS=[...PANTRY_UNITS,'tbsp','tsp'];
-export function validShoppingItem(i){return Boolean(i&&typeof i.id==='string'&&i.id.length>0&&i.id.length<=91&&typeof i.name==='string'&&i.name.trim().length>0&&i.name.length<=80&&typeof i.key==='string'&&i.key===foodIdentity(i.name).key&&SHOPPING_UNITS.includes(i.unit)&&(i.amount===null||typeof i.amount==='number'&&Number.isFinite(i.amount)&&i.amount>0&&i.amount<=1e8)&&STATES.includes(i.state)&&typeof i.bought==='boolean'&&typeof i.received==='boolean'&&(!i.received||i.bought)&&['menu','manual'].includes(i.source)&&(i.dates===undefined||validDates(i.dates))&&(i.receipt===undefined||validReceipt(i.receipt)));}
+export function validShoppingItem(i){return Boolean(i&&typeof i.id==='string'&&i.id.length>0&&i.id.length<=91&&typeof i.name==='string'&&i.name.trim().length>0&&i.name.length<=80&&typeof i.key==='string'&&i.key===foodIdentity(i.name).key&&SHOPPING_UNITS.includes(i.unit)&&(i.amount===null||typeof i.amount==='number'&&Number.isFinite(i.amount)&&i.amount>0&&i.amount<=1e8)&&STATES.includes(i.state)&&typeof i.bought==='boolean'&&typeof i.received==='boolean'&&(!i.received||i.bought)&&['menu','manual'].includes(i.source)&&(i.dates===undefined||validDates(i.dates))&&(i.receipt===undefined||validReceipt(i.receipt))&&(i.recommendationKeys===undefined||Array.isArray(i.recommendationKeys)&&i.recommendationKeys.length<=200&&i.recommendationKeys.every(k=>typeof k==='string'&&k.length>0&&k.length<=600)&&new Set(i.recommendationKeys).size===i.recommendationKeys.length));}
 function validDates(dates){return Array.isArray(dates)&&dates.length>0&&dates.length<=31&&dates.every(validDay)&&new Set(dates).size===dates.length;}
 function validReceipt(r){return Boolean(r&&typeof r.name==='string'&&r.name.trim().length>0&&r.name.length<=80&&Number.isFinite(r.amount)&&r.amount>0&&r.amount<=100000&&PANTRY_UNITS.includes(r.unit)&&STATES.includes(r.state)&&LOCATIONS.includes(r.location)&&(r.date===''||validDay(r.date)));}
 function validList(items){return Array.isArray(items)&&items.every(validShoppingItem)&&new Set(items.map(i=>i.id)).size===items.length;}
@@ -48,4 +48,23 @@ export function receiveShopping(storage,id,details,now=new Date().toISOString())
   savePantry(storage,pantry,{receipt:{id,batch:stored}});
   const items=shopping.items.map(i=>i.id===id?{...i,received:true,receipt:{name:stored.name,amount:stored.amount,unit:stored.unit,state:stored.state??'unspecified',location:stored.location,date:stored.date}}:i);saveShopping(storage,items);
   return {items,pantry};
+}
+
+// Append a recommendation without replacing other meals' pending shopping items.
+export function appendRecommendationShortages(items,rows,targetKey,idFactory){
+  if(!validList(items)||typeof targetKey!=='string'||!targetKey||targetKey.length>220)throw new Error('Invalid shopping list');
+  let next=items.map(i=>({...i,...(i.recommendationKeys?{recommendationKeys:[...i.recommendationKeys]}:{})})),added=0,already=0;
+  for(const row of rows.filter(r=>r.status==='missing'&&r.missing>0)){
+    const marker=JSON.stringify([targetKey,row.id]);
+    if(marker.length>600)throw new Error('Invalid recommendation key');
+    if(next.some(i=>i.recommendationKeys?.includes(marker))){already++;continue;}
+    const candidate={id:'preview',name:row.name,...foodIdentity(row.name),amount:row.missing,unit:row.unit,state:row.state,source:'manual',bought:false,received:false};
+    if(!validShoppingItem(candidate))throw new Error('Invalid shortage');
+    const existing=next.find(i=>i.source==='manual'&&!i.bought&&!i.received&&i.amount!==null&&groupOf(i)===groupOf(candidate)&&(i.recommendationKeys?.length??0)<200);
+    if(existing){existing.amount=roundAmount(canonicalAmount(existing.amount,existing.unit).amount+candidate.amount);existing.unit=candidate.unit;existing.recommendationKeys=[...(existing.recommendationKeys??[]),marker];}
+    else next.push({...candidate,id:idFactory(),recommendationKeys:[marker]});
+    added++;
+  }
+  if(!validList(next))throw new Error('Invalid shopping list');
+  return {items:next,added,already,review:rows.filter(r=>r.status==='review').length};
 }

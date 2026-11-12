@@ -8,7 +8,8 @@ A cooking planner for phone browsers, with React/TypeScript nutrition and cookin
 
 ## Features
 
-- **Recipes:** measured ingredients, cooking steps, cuisine filters, search and six editable sample recipes with source links. Optional photos support dragging and zooming to choose a crop.
+- **Recipes:** measured ingredients, cooking steps, optional total cooking time, cuisine filters, search and six editable sample recipes with source links. Optional photos support dragging and zooming to choose a crop.
+- **What to cook:** pick a saved dish by cuisine and available time, with stock matching and recent cooking records influencing the order. See the reason, try another dish, add it to lunch or dinner, or append measured shortages to the shopping list.
 - **Meal planning:** daily and weekly views, several dishes per meal, separate serving counts and copying a meal to another date. Swipe through dishes or expand the whole meal.
 - **Fridge:** stock batches with quantities, units, preparation states, storage locations and optional dates. Common Chinese and English ingredient names share the same identity.
 - **Shopping:** check planned dishes against stock, combine shortages and confirm the actual amount bought before adding groceries to the fridge.
@@ -76,12 +77,12 @@ npm test
 npm run build
 ```
 
-Tests cover recipe validation, meal planning, quantity scaling, ingredient matching, shopping receipts, cooking records, stock deduction and undo, backup/restore, plate preferences and illustration matching. Browser checks include English/Chinese views and phone-width layouts.
+Tests cover recommendation filtering, stock-based ranking, duplicate-safe menu and grocery actions, recipe validation, meal planning, quantity scaling, ingredient matching, shopping receipts, cooking records, stock deduction and undo, backup/restore, plate preferences and illustration matching. Browser checks include English/Chinese views and phone-width layouts.
 
 ## Next
 
 - Move the remaining page rendering and forms into React/TypeScript components, then add AI features through the backend.
-- Dish suggestions using available ingredients, preferences, cooking time and optional weather information.
+- Extend dish suggestions with dietary preferences and optional weather information.
 - Offline support and home-screen installation.
 
 Details: [roadmap](docs/ROADMAP.md), [sample recipe sources](docs/RECIPE_CATALOG.md), [design notes](docs/DESIGN.md).

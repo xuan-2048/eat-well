@@ -7,13 +7,27 @@
 **Browse sample recipes** offers six recipes without preset photos: egg fried rice, mapo-style chicken and tofu, tomato and basil pasta, black bean quesadillas, oyakodon and Korean cucumber salad. Save one or the set; repeated saves skip entries already in the library. Each recipe links to its cooking reference. Text is adapted and portions are adjusted. See [the catalog and sources](RECIPE_CATALOG.md).
 
 
-Recipes have a serving count, measured ingredients, preparation states, cooking steps and an optional photo. Cuisine filters and name or ingredient search help find a saved dish. “Want to cook” and “Cooked” are independent labels.
+Recipes have a serving count, measured ingredients, preparation states, cooking steps, an optional photo and optional total minutes for preparation and cooking. Leaving the time blank means unknown. Cuisine filters and name or ingredient search help find a saved dish. “Want to cook” and “Cooked” are independent labels.
 
 Lunch and dinner can each hold several dishes. Add, replace or remove one dish without changing the rest of the meal. Every dish has its own planned servings and an ingredient preview. Dishes sit in one horizontal row for each meal: swipe on a phone, use the arrow controls, or focus the row and press the arrow keys. **All** expands a meal into a grid so every dish is visible; **Row** returns to scrolling. Lunch and dinner stay separate. Changing a two-serving recipe to three planned servings multiplies measured amounts by 1.5; ingredients marked “to taste” stay unmeasured. The saved recipe stays unchanged. The same scaling control is available in recipe details.
 
 The Menu page has **Today & tomorrow** and **Week** views. The week starts on Monday. Tap a day to see its lunch and dinner, move between weeks, jump to a date or return to today. Small counts show which days have planned dishes. Future plans use the same saved collection as existing daily menus.
 
 Use **Copy meal** to reuse a whole lunch or dinner on another date or in another meal slot. The preview shows what will be added, what the destination already contains and which recipes will be skipped. Existing dishes and their servings stay as they are; newly copied dishes get independent IDs and retain the source servings. Copying does not keep the meals linked. A source or destination changed in another tab must be reviewed again before saving.
+
+### What to cook
+
+Open **Menu → What to cook?**. Choose a cuisine and a time limit, then select today or tomorrow, lunch or dinner, and the planned servings. The app picks from your saved recipes. Inventory coverage carries the most weight; recipes logged in the last seven calendar days receive a lower score, and shorter known cooking times receive a small bonus. **Try another** goes through the remaining matches before starting another pass.
+
+A time limit excludes recipes with no recorded time. If nothing matches, change the conditions or use **Go to my recipes** to fill in cooking times. Without a time limit, recipes with unknown times can still appear. The sample recipes do not come with assumed timings.
+
+**Ingredient check** scales this dish's quantities to the selected servings and uses the same stock rules as shopping checks. It is a preview for this one dish, not a reservation against all other planned meals. Stock is never deducted here. Unmeasured amounts, incompatible units or preparation states, and stock dated before the meal remain marked for review. **Nutrition per serving** shows the existing sourced estimate, including any missing-data warning; it does not predict nutrient deficiencies or adjust the recommendation to a health target.
+
+**Add to menu** keeps the rest of the meal. If that dish is already in the chosen meal, its existing servings stay unchanged; adjust them from the Menu page instead.
+
+**Add missing groceries** appends measured shortages and merges compatible pending manual items. Other shopping entries stay intact. The same dish/date/meal can add each ingredient once, including after reload or backup restore. Changing servings or recipe amounts later does not automatically rewrite those shopping quantities: check the list yourself. A different day or meal is a separate requirement. Removing the associated shopping entry allows it to be added again. Items needing manual review are never assigned guessed amounts.
+
+Recipe cooking times are saved and included in backups. Recommendation filters and the current candidate last only for the open app session. The first version uses local rules; it has no AI provider, weather service or location permission.
 
 ### Fridge and ingredient checks
 

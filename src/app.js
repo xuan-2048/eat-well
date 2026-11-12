@@ -1,3 +1,5 @@
+import {createRecommendationUI} from './features/recommendations/index.tsx';
+import {recommendationCopy} from './features/recommendations/recommendation-copy.ts';
 import {createNutritionUI} from './nutrition-ui.js';
 import {dishIllustration,ingredientIllustration} from './dish-art.js';
 import {createPlateUI,applyPlateStyle} from './plate-ui.js';
@@ -56,6 +58,7 @@ let editingId=null,draftPhoto='',draftPhotoEdit=null,photoPending=false,photoGen
 const R=()=>recipeCopy[language];
 const cookingUI=createCookingUI({storage:{getItem:key=>storage.getItem(key),setItem:(key,value)=>storage.setItem(key,value)},getLanguage:()=>language,onSaved:()=>{page='history';refreshLocalData();},navigate:()=>{page='history';render();},toast,uid});
 const nutritionUI=createNutritionUI({storage,getLanguage:()=>language,toast,onSaved:updated=>{const selected=Number(dialog.querySelector('#detail-servings')?.value)||updated.servings;freshRecipes();render();openDetails(updated.id,selected);dialog.querySelector('#nutrition-heading')?.focus();}});
+const recommendationUI=createRecommendationUI({storage,getLanguage:()=>language,uid,onChanged:()=>refreshLocalData(),onRecipe:(id,edit)=>{if(freshRecipes()){if(edit)openEditor(id);else openDetails(id);}},onRecipes:()=>{page='recipes';render();},onShopping:()=>{page='shopping';refreshLocalData();}});
 createPlateUI({storage,getLanguage:()=>language,toast});
 createCatalogUI({storage,getLanguage:()=>language,onSaved:()=>refreshLocalData(),toast});
 const backupUI=createBackupUI({storage,getLanguage:()=>language,onRestored:()=>{language=storage.getItem(LANGUAGE_KEY)==='en'?'en':'zh';refreshLocalData();},toast});
@@ -96,6 +99,7 @@ function render(){
     <nav aria-label="${c.nav}">${nav.map(([id,label])=>`<button type="button" data-page="${id}" ${page===id?'aria-current="page"':''}>${icon(id)}<span>${label}</span></button>`).join('')}</nav></div>`;
   syncMealCarousels(app);
   if(page==='history')cookingUI.mount(document.getElementById('cooking-page'));
+  recommendationUI.refresh();
 }
 document.addEventListener('click',event=>{
   const target=event.target.closest('[data-language],[data-page],[data-library],[data-recipe-tab]' );
@@ -122,14 +126,14 @@ function libraryHTML(){
 function recipeResultsHTML(){
   const r=R(),filtered=filterRecipes(records,{tab:recipeTab,cuisine:cuisineFilter,query:searchQuery});
   if(!filtered.length)return `<div class="empty-state">${icon('recipes')}<h2>${records.length?r.noResults:r.empty}</h2><p>${records.length?r.noResultsHint:r.emptyHint}</p>${!records.length?`<button class="secondary" type="button" data-sample ${recipeLoadError?'disabled':''}>${r.sample}</button>`:''}</div>`;
-  return `<div class="recipe-grid">${filtered.map(item=>`<button class="recipe-card" type="button" data-open-recipe="${escapeHTML(item.id)}"><div class="dish-image">${item.photo?`<img src="${item.photo}" alt="" loading="lazy">`:`${dishIllustration(item)}`}</div><span class="dish-content"><small>${r.cuisines[item.cuisine]} · ${item.servings} ${r.servingSuffix}${item.sample?' · '+r.sampleTag:''}</small><strong>${escapeHTML(item.name)}</strong><span class="dish-ingredients">${escapeHTML(item.ingredients.map(i=>i.name).join(' · '))}</span><span class="dish-tags">${item.wanted?`<span>♡ ${copy[language].wanted}</span>`:''}${item.cooked?`<span>✓ ${copy[language].cooked}</span>`:''}</span></span><span class="dish-arrow" aria-hidden="true">↗</span></button>`).join('')}</div>`;
+  return `<div class="recipe-grid">${filtered.map(item=>`<button class="recipe-card" type="button" data-open-recipe="${escapeHTML(item.id)}"><div class="dish-image">${item.photo?`<img src="${item.photo}" alt="" loading="lazy">`:`${dishIllustration(item)}`}</div><span class="dish-content"><small>${r.cuisines[item.cuisine]} · ${item.servings} ${r.servingSuffix}${item.sample?' · '+r.sampleTag:''}${item.cookMinutes?` · ${item.cookMinutes} ${r.minutes}`:''}</small><strong>${escapeHTML(item.name)}</strong><span class="dish-ingredients">${escapeHTML(item.ingredients.map(i=>i.name).join(' · '))}</span><span class="dish-tags">${item.wanted?`<span>♡ ${copy[language].wanted}</span>`:''}${item.cooked?`<span>✓ ${copy[language].cooked}</span>`:''}</span></span><span class="dish-arrow" aria-hidden="true">↗</span></button>`).join('')}</div>`;
 }
 function openDetails(id,selectedServings){
   const item=records.find(r=>r.id===id);if(!item)return;
   const r=R();selectedServings=Number.isFinite(selectedServings)&&selectedServings>0&&selectedServings<=100?selectedServings:item.servings;
   nutritionUI.unmount();
   dialog.dataset.recipe=id;
-  dialog.innerHTML=`<div class="dialog-header"><span>${r.detail}</span><button type="button" data-close-dialog aria-label="${r.close}">×</button></div>${item.photo?`<img class="detail-photo" src="${item.photo}" alt="">`:''}<p class="detail-meta">${r.cuisines[item.cuisine]} · ${item.servings} ${r.servingSuffix}</p><h2 id="detail-title">${escapeHTML(item.name)}</h2><div class="status-actions"><button type="button" data-toggle-status="wanted" aria-pressed="${item.wanted}">♡ ${copy[language].wanted}</button><button type="button" data-toggle-status="cooked" aria-pressed="${item.cooked}">✓ ${copy[language].cooked}</button></div><label class="detail-scale" for="detail-servings">${W().scale}<input id="detail-servings" type="number" min="0.25" max="100" step="0.25" value="${selectedServings}"></label><p class="form-note">${W().portionNote}</p><h3>${r.ingredients}</h3><ul id="detail-ingredients" class="ingredient-detail">${scaledList(item,selectedServings)}</ul><div id="recipe-nutrition"></div><h3>${r.steps}</h3><ol class="step-list">${item.steps.map(step=>`<li>${escapeHTML(step)}</li>`).join('')}</ol>${sourceHTML(item)}<div class="detail-actions"><button class="secondary" type="button" data-edit-recipe="${escapeHTML(id)}">${r.edit}</button><button class="danger" type="button" data-confirm-delete="${escapeHTML(id)}">${r.delete}</button></div>`;
+  dialog.innerHTML=`<div class="dialog-header"><span>${r.detail}</span><button type="button" data-close-dialog aria-label="${r.close}">×</button></div>${item.photo?`<img class="detail-photo" src="${item.photo}" alt="">`:''}<p class="detail-meta">${r.cuisines[item.cuisine]} · ${item.servings} ${r.servingSuffix}${item.cookMinutes?` · ${item.cookMinutes} ${r.minutes}`:''}</p><h2 id="detail-title">${escapeHTML(item.name)}</h2><div class="status-actions"><button type="button" data-toggle-status="wanted" aria-pressed="${item.wanted}">♡ ${copy[language].wanted}</button><button type="button" data-toggle-status="cooked" aria-pressed="${item.cooked}">✓ ${copy[language].cooked}</button></div><label class="detail-scale" for="detail-servings">${W().scale}<input id="detail-servings" type="number" min="0.25" max="100" step="0.25" value="${selectedServings}"></label><p class="form-note">${W().portionNote}</p><h3>${r.ingredients}</h3><ul id="detail-ingredients" class="ingredient-detail">${scaledList(item,selectedServings)}</ul><div id="recipe-nutrition"></div><h3>${r.steps}</h3><ol class="step-list">${item.steps.map(step=>`<li>${escapeHTML(step)}</li>`).join('')}</ol>${sourceHTML(item)}<div class="detail-actions"><button class="secondary" type="button" data-edit-recipe="${escapeHTML(id)}">${r.edit}</button><button class="danger" type="button" data-confirm-delete="${escapeHTML(id)}">${r.delete}</button></div>`;
   dialog.setAttribute('aria-labelledby','detail-title');
   if(!dialog.open)dialog.showModal();
   nutritionUI.mount(dialog.querySelector('#recipe-nutrition'),item,selectedServings);
@@ -153,6 +157,7 @@ function openEditor(id){
   editor.innerHTML=`<form id="recipe-form"><div class="dialog-header"><h2 id="editor-title">${item?r.edit:r.add}</h2><button type="button" data-close-editor aria-label="${r.close}">×</button></div>
     <label for="dish-name">${r.name}<input id="dish-name" name="name" maxlength="100" value="${escapeHTML(item?.name??'')}" placeholder="${r.nameHint}" required></label>
     <div class="form-pair"><label for="dish-cuisine">${r.cuisine}<select id="dish-cuisine" name="cuisine">${CUISINES.map(id=>`<option value="${id}" ${item?.cuisine===id?'selected':''}>${r.cuisines[id]}</option>`).join('')}</select></label><label for="dish-servings">${r.servings}<input id="dish-servings" type="number" inputmode="numeric" name="servings" min="1" max="100" step="1" value="${item?.servings??2}" required></label></div>
+    <label for="dish-minutes">${r.cookMinutes}<input id="dish-minutes" name="cookMinutes" type="number" inputmode="numeric" min="1" max="1440" step="1" value="${item?.cookMinutes??''}"></label><p class="form-note">${r.cookTimeHint}</p>
     <fieldset><legend>${r.ingredients}</legend><div id="ingredient-rows">${(item?.ingredients??[{}]).map(i=>ingredientRow(i.name===undefined?undefined:i)).join('')}</div><button type="button" class="text-link" data-add-row>＋ ${r.addIngredient}</button></fieldset>
     <label for="dish-steps">${r.steps}<textarea id="dish-steps" name="steps" rows="5" maxlength="20000" placeholder="${r.stepsHint}" required>${escapeHTML(item?.steps.join('\n')??'')}</textarea></label>
     <fieldset class="flags"><legend>${r.status}</legend><label><input type="checkbox" name="wanted" ${item?item.wanted?'checked':'':'checked'}> ${copy[language].wanted}</label><label><input type="checkbox" name="cooked" ${item?.cooked?'checked':''}> ${copy[language].cooked}</label></fieldset>
@@ -241,7 +246,7 @@ document.addEventListener('submit',event=>{
     const name=row.querySelector('[name="ingredientName"]').value.trim(),unit=row.querySelector('[name="unit"]').value;
     return {name,key:ingredientKey(name),amount:unit==='toTaste'?null:Number(row.querySelector('[name="amount"]').value),unit,state:row.querySelector('[name="state"]').value};
   });
-  const recipe={id:old?.id??uid(),name:data.get('name').trim(),cuisine:data.get('cuisine'),servings:Number(data.get('servings')),
+  const recipe={id:old?.id??uid(),name:data.get('name').trim(),cuisine:data.get('cuisine'),servings:Number(data.get('servings')),cookMinutes:data.get('cookMinutes')===''?null:Number(data.get('cookMinutes')),
     ingredients,steps:data.get('steps').split('\n').map(s=>s.trim()).filter(Boolean),wanted:data.has('wanted'),cooked:data.has('cooked'),photo:draftPhoto,photoEdit:draftPhotoEdit,createdAt:old?.createdAt??now,updatedAt:now,...(old?.nutrition?{nutrition:old.nutrition}:{}),...(old?.sample?{sample:true}:{}),...(old?.catalogId?{catalogId:old.catalogId,source:old.source?(draftPhoto===old.photo||draftPhotoEdit?.source===old.photoEdit?.source?old.source:{title:old.source.title,url:old.source.url}):undefined}:{})};
   if(!validRecipe(recipe)){formError(R().validation);return;}
   const next=old?records.map(r=>r.id===old.id?recipe:r):[recipe,...records];
@@ -479,6 +484,7 @@ function dateSpan(dates){return dates.length===1?shortDate(dates[0]):`${shortDat
 function homeHTML(){
   const c=copy[language],v=V();
   return `<div class="quick-links"><button type="button" data-library="wanted"><span aria-hidden="true">♡</span> ${c.wanted}</button><button type="button" data-library="cooked"><span aria-hidden="true">✓</span> ${c.cooked}</button></div>
+    <button type="button" class="recommendation-open" data-recommendation-open><span>${recommendationCopy[language].open}</span><span aria-hidden="true">↗</span></button>
     <div class="recipe-tabs menu-modes" role="group" aria-label="${v.weekMenu}">${['daily','week'].map(mode=>`<button type="button" data-menu-view="${mode}" aria-pressed="${menuView===mode}">${v[mode]}</button>`).join('')}</div>
     ${menuView==='week'?weekHTML():`${menuSection(localDay(),c.today)}${menuSection(followingDay(localDay()),c.tomorrow)}`}
     <button type="button" class="secondary check-home" data-open-check ${menuView==='week'?'data-check-week':''}>${menuView==='week'?v.checkWeek:W().check} ↗</button>`;

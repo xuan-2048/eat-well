@@ -1,6 +1,6 @@
 # Code and data
 
-The frontend and API run as separate processes. Vite serves and builds the browser app. The nutrition estimate panel and cooking-history/daily-intake page are React/TypeScript components; other screens and the existing recipe/record dialogs still use JavaScript modules. This is an incremental migration, with compatible entry points for existing cooking, shopping and backup code.
+The frontend and API run as separate processes. Vite serves and builds the browser app. The nutrition panel, cooking-history/daily-intake page and dish recommendation panel use React/TypeScript; other screens and the existing recipe/record dialogs still use JavaScript modules. This is an incremental migration, with compatible entry points for existing cooking, shopping and backup code.
 
 ```text
 src/
@@ -11,10 +11,12 @@ src/
     index.tsx                   Adapter between recipe dialogs and the React root
     reference-dialog.js         Existing weight editor during migration
   features/cooking/             React history, date filters and daily nutrition
+  features/recommendations/     React dish picker and dialog adapter
   repositories/cooking.js       Cooking collection reads
   api/nutrition-client.ts       Typed HTTP client, cancellation and local fallback
   repositories/recipes.js       Validated recipe reads and writes
   services/nutrition.js         Fresh-read/save orchestration for manual references
+  services/recommendations.ts   Fresh-read stock previews and menu/grocery actions
   recipes.js, nutrition.js      Compatibility exports for existing callers
   storage.js                    Browser storage and atomic full-data replacement
   plans.js, pantry.js, ...       Existing menu, stock and cooking modules
@@ -24,6 +26,7 @@ shared/
   nutrition-data.js             Generated USDA snapshot and provenance
   nutrition-settings.js         Stored-reference validation and signatures
   daily-nutrition.ts            Actual-intake aggregation by date and meal
+  recommendations.ts            Choice validation and pure candidate ranking
   nutrition-basis.js            Frozen per-serving estimates and validation
   dates.js                      Shared local/calendar date helpers
   contracts.ts                  Request, response and component data types
@@ -86,3 +89,11 @@ The cooking adapter unmounts its React root before the legacy shell replaces pag
 Daily aggregation runs locally over validated cooking records and never consults current recipe-library entries. New records capture a compact per-serving nutrition basis in the same kitchen write as the record. The signature covers recipe yield, ingredient quantities/preparation and confirmed nutrition references. Subsequent portion/date/note edits and stock operations preserve it. Older records without the optional basis stay readable and use their saved recipe, with an explicit legacy-source note. Neither record reads nor daily summaries migrate or rewrite data.
 
 Daily and meal subtotals preserve nulls, distinguish zero portions from unknown portions, and expose per-nutrient coverage. Only records on the selected calendar date are included. No extra API endpoint or personal intake upload is needed for these local summaries.
+
+## Saved-dish recommendations
+
+`shared/recommendations.ts` validates choices and ranks candidates without storage or UI dependencies. Cuisine and known cooking-time limits are hard filters. The score is 100 × fully covered ingredient fraction + 15 × partial coverage fraction − 20 for a dish cooked in the last seven calendar days + a small known-duration bonus (4 / (1 + minutes / 30)). Ties use recipe IDs. It never treats missing weight as zero or infers weather, health targets or meal intake.
+
+`src/services/recommendations.ts` reloads validated recipes and kitchen data, calls the existing shortage engine for one candidate at the selected servings, and checks a data signature before writes. It reads the latest plans or shopping collection at action time. Adding a plan keeps other assignments and leaves duplicate servings unchanged. Grocery additions preserve manual/menu/purchased/received entries; compatible pending manual quantities merge. Optional validated `recommendationKeys` on shopping items prevent duplicate additions for a recipe/date/meal and ingredient group, and travel with normal backups. Changed quantities on the same target require manual review rather than rewriting the list. No stock write occurs in either action.
+
+`src/features/recommendations/` owns the React panel and dialog adapter. Selection/filter state is transient. Recipe `cookMinutes` is optional and backward-compatible; it is retained in recipe saves, snapshots and backups, but is not part of nutrition reference signatures. The panel reuses the typed nutrition client and its local fallback; recipe titles, photos, pantry and cooking history are not added to API requests.
